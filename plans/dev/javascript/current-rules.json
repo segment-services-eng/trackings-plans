@@ -103,7 +103,7 @@
         "labels": {
           "feature": "journeys"
         },
-        "description": "Advisory SE Roundtable event",
+        "description": "RDC event description",
         "properties": {
           "context": {
             "type": "object"
@@ -139,7 +139,7 @@
         ]
       },
       "createdAt": "2025-09-11T20:24:23.000Z",
-      "updatedAt": "2025-12-09T15:55:39.000Z",
+      "updatedAt": "2025-12-11T17:28:41.000Z",
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
