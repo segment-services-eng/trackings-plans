@@ -1,7 +1,7 @@
 rules:
   - key: Advisory SE Roundtable For Corey
     type: TRACK
-    description: Advisory SE Roundtable
+    description: Levi's Meeting
     version: 2
     labels:
       feature: journeys
