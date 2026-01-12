@@ -96,6 +96,55 @@
     {
       "key": "Advisory SE Roundtable For Corey",
       "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "required": false,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-01-12T18:32:42.000Z",
+      "updatedAt": "2026-01-12T18:32:42.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Advisory SE Roundtable For Corey",
+      "type": "TRACK",
       "version": 2,
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
@@ -210,7 +259,7 @@
                 "items": {
                   "properties": {
                     "layer1_prop34": {
-                      "description": "this is an optional property on any items in the array_prop1  change here",
+                      "description": "this is an optional property on any items in the array_prop1  change here for version 2",
                       "type": "string"
                     }
                   },
@@ -231,8 +280,7 @@
               "prop3": {
                 "description": "this is a single test testing",
                 "type": [
-                  "string",
-                  "null"
+                  "string"
                 ]
               }
             },
@@ -247,7 +295,7 @@
         ]
       },
       "createdAt": "2024-08-08T18:10:05.000Z",
-      "updatedAt": "2025-06-03T18:48:31.000Z",
+      "updatedAt": "2026-01-12T18:32:42.000Z",
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
@@ -313,6 +361,55 @@
       },
       "createdAt": "2025-09-09T15:33:33.000Z",
       "updatedAt": "2025-09-09T15:33:33.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Levi's Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "required": false,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-01-12T18:32:42.000Z",
+      "updatedAt": "2026-01-12T18:32:42.000Z",
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {

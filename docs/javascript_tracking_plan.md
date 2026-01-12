@@ -85,6 +85,34 @@ analytics.track("Advisory SE Roundtable For Corey", {
 <!-- panels:end -->
 
 
+## Advisory SE Roundtable For Corey
+
+<!-- tabs:start -->
+### **Details**
+
+#### **Description**
+
+Levi's Meeting
+#### **Properties**
+
+| **Name** | `Type` | Description | Required? |
+| :--- | :--- | :--- | :--- |
+| **prop2** | `string,null` | this is a single property | ✅ |
+| **prop3** | `string` | this is a new description for prop3 | ❌ |
+#### **JS**
+
+```javascript
+analytics.track("Advisory SE Roundtable For Corey", {
+  "prop2": "<<type: string,null, required: true>>",
+  "prop3": "<<type: string, required: false>>"
+})
+```
+
+<!-- tabs:end -->
+
+<!-- panels:end -->
+
+
 ## Aubrey's Event 1
 
 <!-- tabs:start -->
@@ -125,10 +153,10 @@ First Event
 | :--- | :--- | :--- | :--- |
 | **array_prop22** | `array` | this is an array property (it will specify  "items", keys that need to exist for each item in the array) | ❌ |
 | **array_prop22.items** | `object` | Contains the structure for array items | ❌ |
-| **array_prop22.items.layer1_prop34** | `string` | this is an optional property on any items in the array_prop1  change here | ❌ |
+| **array_prop22.items.layer1_prop34** | `string` | this is an optional property on any items in the array_prop1  change here for version 2 | ❌ |
 | **obj_prop1** | `object` | this is required object (i.e. can have nested sub-properties) here here | ✅ |
 | **obj_prop1.sub_prop1** | `array` | here blach | ❌ |
-| **prop3** | `string,null` | this is a single test testing | ✅ |
+| **prop3** | `string` | this is a single test testing | ✅ |
 #### **JS**
 
 ```javascript
@@ -141,7 +169,7 @@ analytics.track("First Event", {
   "obj_prop1": {
     "sub_prop1": "<<type: array, required: false>>"
   },
-  "prop3": "<<type: string,null, required: true>>"
+  "prop3": "<<type: string, required: true>>"
 })
 ```
 
@@ -181,6 +209,34 @@ analytics.track("First Event", {
     "sub_prop1": "<<type: array, required: false>>"
   },
   "prop3": "<<type: string, required: true>>"
+})
+```
+
+<!-- tabs:end -->
+
+<!-- panels:end -->
+
+
+## Levi's Event
+
+<!-- tabs:start -->
+### **Details**
+
+#### **Description**
+
+Levi's Meeting
+#### **Properties**
+
+| **Name** | `Type` | Description | Required? |
+| :--- | :--- | :--- | :--- |
+| **prop2** | `string,null` | this is a single property | ✅ |
+| **prop3** | `string` | this is a new description for prop3 | ❌ |
+#### **JS**
+
+```javascript
+analytics.track("Levi's Event", {
+  "prop2": "<<type: string,null, required: true>>",
+  "prop3": "<<type: string, required: false>>"
 })
 ```
 
