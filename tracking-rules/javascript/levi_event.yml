@@ -1,7 +1,7 @@
 rules:
   - key: Levi's Event
     type: TRACK
-    description: Levi's Meeting
+    description: Levi's Meeting Updated
     version: 1
     labels:
       feature: journeys
