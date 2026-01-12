@@ -64,7 +64,7 @@ analytics.track("Advisory SE Roundtable", {
 
 #### **Description**
 
-Advisory SE Roundtable
+Levi's Meeting
 #### **Properties**
 
 | **Name** | `Type` | Description | Required? |
