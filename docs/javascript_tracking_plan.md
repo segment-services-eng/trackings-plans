@@ -224,7 +224,7 @@ analytics.track("First Event", {
 
 #### **Description**
 
-Levi's Meeting
+Levi's Meeting Updated
 #### **Properties**
 
 | **Name** | `Type` | Description | Required? |

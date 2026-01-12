@@ -373,7 +373,7 @@
         "labels": {
           "feature": "journeys"
         },
-        "description": "Levi's Meeting",
+        "description": "Levi's Meeting Updated",
         "properties": {
           "context": {
             "type": "object"
@@ -409,7 +409,7 @@
         ]
       },
       "createdAt": "2026-01-12T18:32:42.000Z",
-      "updatedAt": "2026-01-12T18:32:42.000Z",
+      "updatedAt": "2026-01-12T19:15:49.000Z",
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
