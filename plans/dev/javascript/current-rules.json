@@ -45,58 +45,9 @@
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
-      "key": "Advisory SE Roundtable",
-      "type": "TRACK",
-      "version": 2,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Advisory SE Roundtable",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "prop3": {
-                "description": "this is a new description for prop3",
-                "required": false,
-                "type": [
-                  "string"
-                ]
-              }
-            },
-            "required": [
-              "prop2"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ]
-      },
-      "createdAt": "2025-09-09T15:12:38.000Z",
-      "updatedAt": "2025-09-09T15:12:38.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
-    },
-    {
       "key": "Advisory SE Roundtable For Corey",
       "type": "TRACK",
-      "version": 2,
+      "version": 1,
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
@@ -138,8 +89,8 @@
           "properties"
         ]
       },
-      "createdAt": "2025-09-11T20:24:23.000Z",
-      "updatedAt": "2026-01-12T17:57:52.000Z",
+      "createdAt": "2026-01-12T18:31:14.000Z",
+      "updatedAt": "2026-01-12T18:31:14.000Z",
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
@@ -210,72 +161,6 @@
                 "items": {
                   "properties": {
                     "layer1_prop34": {
-                      "description": "this is an optional property on any items in the array_prop1  change here",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "obj_prop1": {
-                "description": "this is required object (i.e. can have nested sub-properties) here here",
-                "properties": {
-                  "sub_prop1": {
-                    "description": "here blach",
-                    "type": "array"
-                  }
-                },
-                "type": "object"
-              },
-              "prop3": {
-                "description": "this is a single test testing",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              }
-            },
-            "required": [
-              "obj_prop1",
-              "prop3"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ]
-      },
-      "createdAt": "2025-05-22T19:37:48.000Z",
-      "updatedAt": "2025-06-03T18:47:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
-    },
-    {
-      "key": "First Event",
-      "type": "TRACK",
-      "version": 2,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "First Event",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "array_prop22": {
-                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
-                "items": {
-                  "properties": {
-                    "layer1_prop34": {
                       "description": "this is an optional property on any items in the array_prop1  change here for version 2",
                       "type": "string"
                     }
@@ -311,8 +196,57 @@
           "properties"
         ]
       },
-      "createdAt": "2025-09-09T15:20:08.000Z",
-      "updatedAt": "2025-09-09T15:20:08.000Z",
+      "createdAt": "2025-05-22T19:37:48.000Z",
+      "updatedAt": "2026-01-12T18:31:14.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Levi's Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "required": false,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-01-12T18:31:14.000Z",
+      "updatedAt": "2026-01-12T18:31:14.000Z",
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
