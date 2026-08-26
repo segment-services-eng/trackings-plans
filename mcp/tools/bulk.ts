@@ -1,23 +1,16 @@
 import { z } from "zod";
 import { join } from "node:path";
-import type { ServerContext } from "../context.js";
+import type { ServerContext, WriteMode } from "../context.js";
 import { err, ok, ToolResult } from "./result.js";
+import { yamlPropertySchema } from "./schemas.js";
 import {
   loadYamlRuleFile,
   writeYamlRuleFile,
   type YamlProperty,
 } from "../../lib/yaml-transform.js";
 import { readYamlRules } from "./validate.js";
-import { applyWriteFlow } from "./author.js";
+import { applyWriteFlow } from "./write-flow.js";
 import { PlanNotFoundError } from "../../lib/plans-config.js";
-
-const yamlPropertySchema: z.ZodType<YamlProperty> = z
-  .object({
-    type: z.string().optional(),
-    description: z.string().optional(),
-    required: z.boolean().optional(),
-  })
-  .catchall(z.unknown());
 
 export const bulkRenamePropertyInput = z
   .object({
@@ -26,6 +19,7 @@ export const bulkRenamePropertyInput = z
     to: z.string(),
     dry_run: z.boolean().optional(),
     mode: z.enum(["files", "branch", "pr"]).optional(),
+    on_collision: z.enum(["fail", "skip", "overwrite"]).optional(),
   })
   .strict();
 
@@ -52,7 +46,8 @@ export async function bulkRenameProperty(
     files_changed: string[];
     affected_events: string[];
     dry_run: boolean;
-    mode: string;
+    mode: WriteMode;
+    collisions?: Array<{ event: string; existing: YamlProperty }>;
     [k: string]: unknown;
   }>
 > {
@@ -69,6 +64,12 @@ export async function bulkRenameProperty(
     (r) => `tracking-rules/${plan.path}/${r.key.replace(/ /g, "_")}.yml`,
   );
   const affected_events = affected.map((r) => r.key);
+
+  // Detect collisions: events that already have a property named args.to
+  const collisions: Array<{ event: string; existing: YamlProperty }> = affected
+    .filter((r) => args.to in (r.properties ?? {}))
+    .map((r) => ({ event: r.key, existing: r.properties[args.to] }));
+
   const dry_run = args.dry_run ?? true;
   if (dry_run) {
     return ok({
@@ -76,9 +77,34 @@ export async function bulkRenameProperty(
       affected_events,
       dry_run: true,
       mode: ctx.resolveWriteMode(args.mode),
+      collisions,
     });
   }
+
+  const on_collision = args.on_collision ?? "fail";
+
+  // Fix 5: block on collisions unless caller opted in
+  if (collisions.length > 0 && on_collision === "fail") {
+    return err(
+      "VALIDATION",
+      `Cannot rename "${args.from}" to "${args.to}" — ${collisions.length} event(s) already have a property named "${args.to}"`,
+      { details: { collisions } },
+    );
+  }
+
   const mode = ctx.resolveWriteMode(args.mode);
+
+  // Determine which events to actually process based on on_collision strategy
+  const toProcess =
+    on_collision === "skip"
+      ? affected.filter((r) => !(args.to in (r.properties ?? {})))
+      : affected; // "overwrite" or no collisions → process all
+
+  const processedPaths = toProcess.map(
+    (r) => `tracking-rules/${plan.path}/${r.key.replace(/ /g, "_")}.yml`,
+  );
+  const processedEvents = toProcess.map((r) => r.key);
+
   const result = await applyWriteFlow(
     ctx,
     plan.path,
@@ -87,7 +113,7 @@ export async function bulkRenameProperty(
     "update",
     mode,
     () => {
-      for (const rule of affected) {
+      for (const rule of toProcess) {
         const filePath = planFilePath(ctx.repoPath, plan.path, rule.key);
         const current = loadYamlRuleFile(filePath);
         const val = current.properties[args.from];
@@ -95,11 +121,14 @@ export async function bulkRenameProperty(
         current.properties[args.to] = val;
         writeYamlRuleFile(filePath, current);
       }
-      return { files_changed: relPaths };
+      return { files_changed: processedPaths };
     },
   );
   if (!result.ok) return result;
-  return ok({ ...result.data, affected_events, dry_run: false });
+  return ok(
+    { ...result.data, affected_events: processedEvents, dry_run: false },
+    result.warnings,
+  );
 }
 
 export async function bulkAddProperty(
@@ -110,7 +139,7 @@ export async function bulkAddProperty(
     files_changed: string[];
     affected_events: string[];
     dry_run: boolean;
-    mode: string;
+    mode: WriteMode;
     [k: string]: unknown;
   }>
 > {
@@ -167,5 +196,8 @@ export async function bulkAddProperty(
     },
   );
   if (!result.ok) return result;
-  return ok({ ...result.data, affected_events, dry_run: false });
+  return ok(
+    { ...result.data, affected_events, dry_run: false },
+    result.warnings,
+  );
 }

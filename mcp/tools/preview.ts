@@ -53,6 +53,7 @@ export async function previewMarkdown(
 
   const committedMdPath = join(ctx.repoPath, "docs", `${plan.name}.md`);
   let diff: string | null = null;
+  const warnings: string[] = [];
   if (existsSync(committedMdPath)) {
     try {
       execFileSync(
@@ -60,12 +61,21 @@ export async function previewMarkdown(
         ["diff", "--no-index", "--no-color", committedMdPath, "-"],
         { cwd: ctx.repoPath, input: markdown, encoding: "utf8" },
       );
-      diff = "";
+      diff = ""; // exit 0 — files are identical
     } catch (e: any) {
-      diff = typeof e.stdout === "string" ? e.stdout : String(e.stdout ?? "");
+      const status: number | null = typeof e.status === "number" ? e.status : null;
+      if (status === 1) {
+        // exit 1 from git diff --no-index means files differ — stdout has the diff
+        diff = typeof e.stdout === "string" ? e.stdout : String(e.stdout ?? "");
+      } else {
+        // exit 128+ or unknown — a real git error
+        const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.stderr ?? "");
+        diff = null;
+        warnings.push(`Could not compute diff: ${stderr || e.message}`);
+      }
     }
   }
-  return ok({ markdown, diff_against_committed: diff });
+  return ok({ markdown, diff_against_committed: diff }, warnings.length ? warnings : undefined);
 }
 
 export async function previewSegmentPayload(

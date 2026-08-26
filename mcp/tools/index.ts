@@ -136,19 +136,19 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
     ),
     makeTool(
       "add_event",
-      "Add a new event to a tracking plan by writing a YAML rule file (files mode).",
+      "Create a new event YAML file. Modes: files | branch (default) | pr.",
       addEventInput,
       addEvent,
     ),
     makeTool(
       "update_event",
-      "Update an existing event's description or properties in a tracking plan (files mode).",
+      "Update an existing event's description or properties. Modes: files | branch (default) | pr.",
       updateEventInput,
       updateEvent,
     ),
     makeTool(
       "remove_event",
-      "Remove an event from a tracking plan by deleting its YAML rule file (files mode). Requires confirm: true.",
+      "Remove an event YAML file. Requires confirm: true. Modes: files | branch (default) | pr.",
       removeEventInput,
       removeEvent,
     ),

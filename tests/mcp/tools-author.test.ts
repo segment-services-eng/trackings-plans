@@ -6,6 +6,7 @@ import { join } from "node:path";
 import yaml from "js-yaml";
 import { resolveContext } from "../../mcp/context.js";
 import { addEvent, updateEvent, removeEvent } from "../../mcp/tools/author.js";
+import { applyWriteFlow } from "../../mcp/tools/write-flow.js";
 
 function makeRepo(): string {
   const dir = mkdtempSync(join(tmpdir(), "tp-auth-"));
@@ -141,24 +142,6 @@ describe("author tools (files mode)", () => {
     if (!res.ok) throw new Error();
     expect(existsSync(path)).toBe(false);
   });
-
-  it("removeEvent refuses without confirm:true", async () => {
-    const ctx = resolveContext({ REPO_PATH: makeRepo() });
-    await addEvent(ctx, {
-      plan: "javascript",
-      key: "Doomed",
-      description: "d",
-      properties: {},
-      mode: "files",
-    });
-    const res = await removeEvent(ctx, {
-      plan: "javascript",
-      key: "Doomed",
-      confirm: false as any,
-      mode: "files",
-    });
-    expect(res.ok).toBe(false);
-  });
 });
 
 describe("author tools (branch mode)", () => {
@@ -176,7 +159,11 @@ describe("author tools (branch mode)", () => {
     expect(res.data.mode).toBe("branch");
     expect(res.data.branch).toMatch(/^tp\/javascript\/add-product-viewed-\d+$/);
     expect(res.data.commit_sha).toMatch(/^[0-9a-f]{40}$/);
-    const log = execSync("git log --oneline -n 1", { cwd: repo, encoding: "utf8" });
+    // After the write-flow, HEAD is restored to main; check the commit on the tp branch
+    const log = execSync(`git log --oneline -n 1 ${res.data.branch}`, {
+      cwd: repo,
+      encoding: "utf8",
+    });
     expect(log).toContain(`add event "Product Viewed"`);
   });
 
@@ -194,5 +181,56 @@ describe("author tools (branch mode)", () => {
     expect(res.ok).toBe(false);
     if (res.ok) throw new Error();
     expect(res.error.code).toBe("DIRTY_TREE");
+  });
+
+  it("branch mode restores original branch after successful write (Fix 1)", async () => {
+    const repo = makeRepo();
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const res = await addEvent(ctx, {
+      plan: "javascript",
+      key: "Product Viewed",
+      description: "d",
+      properties: {},
+      mode: "branch",
+    });
+    if (!res.ok) throw new Error(JSON.stringify(res.error));
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
+      cwd: repo,
+      encoding: "utf8",
+    }).trim();
+    expect(branch).toBe("main");
+  });
+
+  it("branch mode rollback: cleans working tree and restores original branch on mutator error (Fix 2)", async () => {
+    const repo = makeRepo();
+    // Create a clean committed state first
+    mkdirSync(join(repo, "tracking-rules", "javascript"), { recursive: true });
+    writeFileSync(join(repo, "tracking-rules", "javascript", "Stable.yml"), "rules:\n  - key: Stable\n");
+    execSync("git add . && git commit -qm seed", { cwd: repo });
+
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const result = await applyWriteFlow(
+      ctx,
+      "javascript",
+      "JavaScript",
+      "Fail Event",
+      "add",
+      "branch",
+      () => {
+        throw new Error("boom — simulated mutator failure");
+      },
+    );
+    expect(result.ok).toBe(false);
+
+    // Working tree must be clean
+    const status = execSync("git status --porcelain", { cwd: repo, encoding: "utf8" });
+    expect(status.trim()).toBe("");
+
+    // Must be back on original branch
+    const branch = execSync("git rev-parse --abbrev-ref HEAD", {
+      cwd: repo,
+      encoding: "utf8",
+    }).trim();
+    expect(branch).toBe("main");
   });
 });

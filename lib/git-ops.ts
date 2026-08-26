@@ -53,6 +53,11 @@ export function assertCleanTree(repoPath: string): void {
   }
 }
 
+/**
+ * Create a new branch based on the local `main` branch.
+ * If an origin remote exists, attempts a best-effort `git fetch origin main` first
+ * to bring local main up to date.  Falls back to `HEAD` if local `main` doesn't exist.
+ */
 export function createBranch(repoPath: string, branchName: string): void {
   const hasOrigin = (() => {
     try {
@@ -62,16 +67,36 @@ export function createBranch(repoPath: string, branchName: string): void {
       return false;
     }
   })();
+
   if (hasOrigin) {
     try {
       git(repoPath, ["fetch", "origin", "main"]);
     } catch {
       // proceed even if fetch fails; local main will be used
     }
-    git(repoPath, ["checkout", "-b", branchName, "origin/main"]);
-  } else {
+  }
+
+  // Base on local main (potentially just fast-forwarded), fall back to HEAD
+  try {
+    git(repoPath, ["checkout", "-b", branchName, "main"]);
+  } catch {
     git(repoPath, ["checkout", "-b", branchName]);
   }
+}
+
+/** Switch to an existing branch. Throws GitOpsError on failure. */
+export function checkoutBranch(repoPath: string, branchName: string): void {
+  git(repoPath, ["checkout", branchName]);
+}
+
+/** Force-delete a local branch. Throws GitOpsError on failure. */
+export function deleteBranch(repoPath: string, branchName: string): void {
+  git(repoPath, ["branch", "-D", branchName]);
+}
+
+/** Discard all unstaged changes in the working tree (git checkout -- .). */
+export function discardWorkingTreeChanges(repoPath: string): void {
+  git(repoPath, ["checkout", "--", "."]);
 }
 
 export function commitPaths(
