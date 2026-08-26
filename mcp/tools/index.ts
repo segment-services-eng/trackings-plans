@@ -41,6 +41,12 @@ import {
   removeEvent,
   removeEventInput,
 } from "./author.js";
+import {
+  bulkRenameProperty,
+  bulkRenamePropertyInput,
+  bulkAddProperty,
+  bulkAddPropertyInput,
+} from "./bulk.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
 
@@ -145,6 +151,18 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       "Remove an event from a tracking plan by deleting its YAML rule file (files mode). Requires confirm: true.",
       removeEventInput,
       removeEvent,
+    ),
+    makeTool(
+      "bulk_rename_property",
+      "Rename a property across every event in a plan. Default dry_run: true — must explicitly set false to execute.",
+      bulkRenamePropertyInput,
+      bulkRenameProperty,
+    ),
+    makeTool(
+      "bulk_add_property",
+      "Add a property to every event matching an optional filter. Default dry_run: true.",
+      bulkAddPropertyInput,
+      bulkAddProperty,
     ),
   ];
 
