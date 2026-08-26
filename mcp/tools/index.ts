@@ -12,6 +12,12 @@ import {
   listEventsInput,
   getEvent,
   getEventInput,
+  diffPlans,
+  diffPlansInput,
+  findPropertyUsage,
+  findPropertyUsageInput,
+  listRecentChanges,
+  listRecentChangesInput,
 } from "./read.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
@@ -51,6 +57,24 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       "Get a single event's full definition (yaml shape) from a plan snapshot.",
       getEventInput,
       getEvent,
+    ),
+    makeTool(
+      "diff_plans",
+      "Semantic diff between two (plan, env) pairs — added/removed/modified events.",
+      diffPlansInput,
+      diffPlans,
+    ),
+    makeTool(
+      "find_property_usage",
+      "List every event that uses a given property. If plan is omitted, searches all plans.",
+      findPropertyUsageInput,
+      findPropertyUsage,
+    ),
+    makeTool(
+      "list_recent_changes",
+      "Git log for tracking-rules/<plan>/ over the last N commits (default 20).",
+      listRecentChangesInput,
+      listRecentChanges,
     ),
   ];
 
