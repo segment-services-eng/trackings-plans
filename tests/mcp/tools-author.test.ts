@@ -160,3 +160,39 @@ describe("author tools (files mode)", () => {
     expect(res.ok).toBe(false);
   });
 });
+
+describe("author tools (branch mode)", () => {
+  it("addEvent creates branch and commits when mode=branch", async () => {
+    const repo = makeRepo();
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const res = await addEvent(ctx, {
+      plan: "javascript",
+      key: "Product Viewed",
+      description: "d",
+      properties: {},
+      mode: "branch",
+    });
+    if (!res.ok) throw new Error(JSON.stringify(res.error));
+    expect(res.data.mode).toBe("branch");
+    expect(res.data.branch).toMatch(/^tp\/javascript\/add-product-viewed-\d+$/);
+    expect(res.data.commit_sha).toMatch(/^[0-9a-f]{40}$/);
+    const log = execSync("git log --oneline -n 1", { cwd: repo, encoding: "utf8" });
+    expect(log).toContain(`add event "Product Viewed"`);
+  });
+
+  it("branch mode refuses when working tree is dirty", async () => {
+    const repo = makeRepo();
+    writeFileSync(join(repo, "config", "tracking-plans-config.json"), "{}"); // dirty
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const res = await addEvent(ctx, {
+      plan: "javascript",
+      key: "x",
+      description: "d",
+      properties: {},
+      mode: "branch",
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error();
+    expect(res.error.code).toBe("DIRTY_TREE");
+  });
+});
