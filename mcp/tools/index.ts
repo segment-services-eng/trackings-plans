@@ -27,6 +27,12 @@ import {
   lintRules,
   lintRulesInput,
 } from "./validate.js";
+import {
+  previewMarkdown,
+  previewMarkdownInput,
+  previewSegmentPayload,
+  previewSegmentPayloadInput,
+} from "./preview.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
 
@@ -101,6 +107,18 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       "Deep lint of a plan: schema errors, warnings, and orphan events between yaml and snapshot.",
       lintRulesInput,
       lintRules,
+    ),
+    makeTool(
+      "preview_markdown",
+      "Render the markdown data dictionary from local YAML (or snapshot). Returns markdown + diff vs committed docs/<plan>.md.",
+      previewMarkdownInput,
+      previewMarkdown,
+    ),
+    makeTool(
+      "preview_segment_payload",
+      "Show the exact Segment JSON payload for one event based on local YAML. Never touches Segment.",
+      previewSegmentPayloadInput,
+      previewSegmentPayload,
     ),
   ];
 
