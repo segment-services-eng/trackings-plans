@@ -33,6 +33,14 @@ import {
   previewSegmentPayload,
   previewSegmentPayloadInput,
 } from "./preview.js";
+import {
+  addEvent,
+  addEventInput,
+  updateEvent,
+  updateEventInput,
+  removeEvent,
+  removeEventInput,
+} from "./author.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
 
@@ -119,6 +127,24 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       "Show the exact Segment JSON payload for one event based on local YAML. Never touches Segment.",
       previewSegmentPayloadInput,
       previewSegmentPayload,
+    ),
+    makeTool(
+      "add_event",
+      "Add a new event to a tracking plan by writing a YAML rule file (files mode).",
+      addEventInput,
+      addEvent,
+    ),
+    makeTool(
+      "update_event",
+      "Update an existing event's description or properties in a tracking plan (files mode).",
+      updateEventInput,
+      updateEvent,
+    ),
+    makeTool(
+      "remove_event",
+      "Remove an event from a tracking plan by deleting its YAML rule file (files mode). Requires confirm: true.",
+      removeEventInput,
+      removeEvent,
     ),
   ];
 
