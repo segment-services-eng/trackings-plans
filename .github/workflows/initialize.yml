@@ -17,12 +17,12 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # Load tracking plans from JSON file
       - name: Load Tracking Plans Configuration
@@ -43,12 +43,15 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: '16'
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Build lib/
+        run: npm run build
 
       # **Step 1: Fetch DEV Tracking Plan**
       - name: Fetch DEV Tracking Plan
