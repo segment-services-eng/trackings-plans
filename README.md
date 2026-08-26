@@ -137,3 +137,29 @@ The `update-tracking-plan.js` script updates tracking plan rules in Segment usin
 These endpoints ensure that the tracking plans stay in sync between Segment and this repository.
 
 ✅ **This setup automates the full tracking plan lifecycle from YAML to Segment to Markdown!** 🎯  
+
+---
+
+## 🤖 MCP Server (Milestone 1: read-only)
+
+This repo also ships an MCP server that lets you query your tracking plans in natural language via Claude Desktop, Cursor, or any MCP-compatible client.
+
+### Setup
+
+```bash
+npm ci
+npm run build
+```
+
+Then add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`) — see [`docs/mcp-smoke-test.md`](docs/mcp-smoke-test.md) for the full recipe.
+
+### Available tools (M1)
+
+- `list_plans` — enumerate configured plans
+- `list_events` — list events with optional regex filter, `missing_description`, `has_property`
+- `get_event` — full YAML-shape definition of a single event
+- `diff_plans` — semantic diff between two `(plan, env)` pairs
+- `find_property_usage` — every event that uses a given property
+- `list_recent_changes` — git log limited to `tracking-rules/<plan>/`
+
+Authoring, validation, and preview tools land in Milestone 2.
