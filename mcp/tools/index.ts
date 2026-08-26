@@ -19,6 +19,14 @@ import {
   listRecentChanges,
   listRecentChangesInput,
 } from "./read.js";
+import {
+  validateEvent,
+  validateEventInput,
+  validatePlan,
+  validatePlanInput,
+  lintRules,
+  lintRulesInput,
+} from "./validate.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
 
@@ -75,6 +83,24 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       "Git log for tracking-rules/<plan>/ over the last N commits (default 20).",
       listRecentChangesInput,
       listRecentChanges,
+    ),
+    makeTool(
+      "validate_event",
+      "Validate a single event's schema, types, and required descriptions.",
+      validateEventInput,
+      validateEvent,
+    ),
+    makeTool(
+      "validate_plan",
+      "Validate all events in a plan snapshot; returns findings and a severity summary.",
+      validatePlanInput,
+      validatePlan,
+    ),
+    makeTool(
+      "lint_rules",
+      "Deep lint of a plan: schema errors, warnings, and orphan events between yaml and snapshot.",
+      lintRulesInput,
+      lintRules,
     ),
   ];
 
