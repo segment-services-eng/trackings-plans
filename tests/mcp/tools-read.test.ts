@@ -145,4 +145,15 @@ describe("mcp/tools/read", () => {
     if (res.ok) throw new Error();
     expect(res.error.code).toBe("NOT_FOUND");
   });
+
+  it("listEvents returns VALIDATION error for invalid filter regex", async () => {
+    const res = await listEvents(ctx, {
+      plan: "javascript",
+      env: "dev",
+      filter: "[abc",
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error();
+    expect(res.error.code).toBe("VALIDATION");
+  });
 });

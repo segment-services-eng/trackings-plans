@@ -140,4 +140,174 @@ describe("listRecentChanges", () => {
     expect(res.data.commits.length).toBeGreaterThanOrEqual(1);
     expect(res.data.commits[0].subject).toMatch(/add b|initial/);
   });
+
+  it("returns GIT error envelope when REPO_PATH is not a git repository", async () => {
+    // makeRepo() creates a plain directory with no git init
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    const res = await listRecentChanges(ctx, { plan: "javascript", limit: 5 });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error("expected failure");
+    expect(res.error.code).toBe("GIT");
+  });
+});
+
+describe("diffPlans — description and required changes", () => {
+  function makeDescRequiredRepo(): string {
+    const repo = mkdtempSync(join(tmpdir(), "tp-descreq-"));
+    mkdirSync(join(repo, "config"), { recursive: true });
+    writeFileSync(
+      join(repo, "config", "tracking-plans-config.json"),
+      JSON.stringify({
+        plans: [
+          {
+            name: "JavaScript",
+            path: "javascript",
+            dev_secret: "DEV_JS",
+            prod_secret: "PROD_JS",
+          },
+        ],
+      }),
+    );
+    // dev: event E with description "Old description" and prop p (not required)
+    const devDir = join(repo, "plans", "dev", "javascript");
+    mkdirSync(devDir, { recursive: true });
+    writeFileSync(
+      join(devDir, "current-rules.json"),
+      JSON.stringify({
+        rules: [
+          {
+            key: "E",
+            type: "TRACK",
+            version: 1,
+            jsonSchema: {
+              description: "Old description",
+              properties: {
+                properties: {
+                  type: "object",
+                  properties: { p: { type: "string" } },
+                  required: [],
+                },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    // prod: event E with description "New description" and prop p (now required)
+    const prodDir = join(repo, "plans", "prod", "javascript");
+    mkdirSync(prodDir, { recursive: true });
+    writeFileSync(
+      join(prodDir, "current-rules.json"),
+      JSON.stringify({
+        rules: [
+          {
+            key: "E",
+            type: "TRACK",
+            version: 1,
+            jsonSchema: {
+              description: "New description",
+              properties: {
+                properties: {
+                  type: "object",
+                  properties: { p: { type: "string" } },
+                  required: ["p"],
+                },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    return repo;
+  }
+
+  it("reports description change in modified[].changes", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeDescRequiredRepo() });
+    const res = await diffPlans(ctx, {
+      planA: "javascript",
+      envA: "dev",
+      planB: "javascript",
+      envB: "prod",
+    });
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    expect(res.data.modified.map((m) => m.key)).toContain("E");
+    const changes = res.data.modified.find((m) => m.key === "E")!.changes.join("\n");
+    expect(changes).toMatch(/changed description from/);
+    expect(changes).toMatch(/Old description/);
+    expect(changes).toMatch(/New description/);
+  });
+
+  it("reports required-set change in modified[].changes", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeDescRequiredRepo() });
+    const res = await diffPlans(ctx, {
+      planA: "javascript",
+      envA: "dev",
+      planB: "javascript",
+      envB: "prod",
+    });
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    const changes = res.data.modified.find((m) => m.key === "E")!.changes.join("\n");
+    expect(changes).toMatch(/property p is now required/);
+  });
+});
+
+describe("findPropertyUsage — cross-plan search", () => {
+  function makeTwoPlanRepo(): string {
+    const repo = mkdtempSync(join(tmpdir(), "tp-twoplans-"));
+    mkdirSync(join(repo, "config"), { recursive: true });
+    writeFileSync(
+      join(repo, "config", "tracking-plans-config.json"),
+      JSON.stringify({
+        plans: [
+          {
+            name: "JavaScript",
+            path: "javascript",
+            dev_secret: "DEV_JS",
+            prod_secret: "PROD_JS",
+          },
+          {
+            name: "Server",
+            path: "server",
+            dev_secret: "DEV_SERVER",
+            prod_secret: "PROD_SERVER",
+          },
+        ],
+      }),
+    );
+    for (const planPath of ["javascript", "server"]) {
+      const dir = join(repo, "plans", "dev", planPath);
+      mkdirSync(dir, { recursive: true });
+      writeFileSync(
+        join(dir, "current-rules.json"),
+        JSON.stringify({
+          rules: [
+            {
+              key: "Event With User",
+              type: "TRACK",
+              version: 1,
+              jsonSchema: {
+                properties: {
+                  properties: {
+                    type: "object",
+                    properties: { user_id: { type: "string" } },
+                  },
+                },
+              },
+            },
+          ],
+        }),
+      );
+    }
+    return repo;
+  }
+
+  it("finds property usage across all plans when plan arg is omitted", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeTwoPlanRepo() });
+    const res = await findPropertyUsage(ctx, { property: "user_id", env: "dev" });
+    if (!res.ok) throw new Error(JSON.stringify(res));
+    const planPaths = res.data.usages.map((u) => u.plan);
+    expect(planPaths).toContain("javascript");
+    expect(planPaths).toContain("server");
+    expect(res.data.usages).toHaveLength(2);
+  });
 });

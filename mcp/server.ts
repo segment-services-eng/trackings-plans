@@ -1,3 +1,5 @@
+// TODO(M2+): migrate from deprecated low-level Server to McpServer.
+// When we do, drop the zod-to-json-schema dep — McpServer.tool() accepts zod directly.
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { resolveContext, ServerContext } from "./context.js";

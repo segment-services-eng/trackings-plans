@@ -51,7 +51,14 @@ export async function listEvents(
     throw e;
   }
   const rules = readPlanSnapshot(ctx.repoPath, args.env, plan.path);
-  const filterRegex = args.filter ? new RegExp(args.filter) : null;
+  let filterRegex: RegExp | null = null;
+  if (args.filter) {
+    try {
+      filterRegex = new RegExp(args.filter);
+    } catch (e: any) {
+      return err("VALIDATION", "Invalid regex in 'filter': " + e.message);
+    }
+  }
   const events = rules
     .map((r) => {
       const schema = r.jsonSchema as any;
@@ -124,6 +131,19 @@ function propsOf(rule: any): Record<string, any> {
   return rule?.jsonSchema?.properties?.properties?.properties ?? {};
 }
 
+function descriptionOf(rule: any): string | null {
+  return rule?.jsonSchema?.description ?? null;
+}
+
+function requiredOf(rule: any): Set<string> {
+  const req: unknown[] = rule?.jsonSchema?.properties?.properties?.required ?? [];
+  return new Set(req.filter((v): v is string => typeof v === "string"));
+}
+
+function truncate(s: string, max: number): string {
+  return s.length > max ? s.slice(0, max) + "…" : s;
+}
+
 export async function diffPlans(
   ctx: ServerContext,
   args: z.infer<typeof diffPlansInput>,
@@ -158,7 +178,20 @@ export async function diffPlans(
     if (!ruleB) continue;
     const propsA = propsOf(ruleA);
     const propsB = propsOf(ruleB);
+    const descA = descriptionOf(ruleA);
+    const descB = descriptionOf(ruleB);
+    const reqA = requiredOf(ruleA);
+    const reqB = requiredOf(ruleB);
     const changes: string[] = [];
+
+    // Description diff
+    if (descA !== descB) {
+      const dA = descA == null ? "(none)" : `"${truncate(descA, 40)}"`;
+      const dB = descB == null ? "(none)" : `"${truncate(descB, 40)}"`;
+      changes.push(`changed description from ${dA} to ${dB}`);
+    }
+
+    // Property type / existence diff
     for (const p of Object.keys(propsB)) {
       if (!(p in propsA)) changes.push(`added property ${p}`);
       else if ((propsA[p]?.type ?? "unknown") !== (propsB[p]?.type ?? "unknown")) {
@@ -170,6 +203,15 @@ export async function diffPlans(
     for (const p of Object.keys(propsA)) {
       if (!(p in propsB)) changes.push(`removed property ${p}`);
     }
+
+    // Required set diff
+    for (const p of reqB) {
+      if (!reqA.has(p)) changes.push(`property ${p} is now required`);
+    }
+    for (const p of reqA) {
+      if (!reqB.has(p)) changes.push(`property ${p} is no longer required`);
+    }
+
     if (changes.length) modified.push({ key, changes });
   }
   return ok({ added, removed, modified });
@@ -214,17 +256,23 @@ export async function listRecentChanges(
     throw e;
   }
   const limit = args.limit ?? 20;
-  const out = execFileSync(
-    "git",
-    [
-      "log",
-      `--max-count=${limit}`,
-      "--pretty=format:%H%x1f%s",
-      "--",
-      `tracking-rules/${plan.path}/`,
-    ],
-    { cwd: ctx.repoPath, encoding: "utf8" },
-  );
+  let out: string;
+  try {
+    out = execFileSync(
+      "git",
+      [
+        "log",
+        `--max-count=${limit}`,
+        "--pretty=format:%H%x1f%s",
+        "--",
+        `tracking-rules/${plan.path}/`,
+      ],
+      { cwd: ctx.repoPath, encoding: "utf8", stdio: ["pipe", "pipe", "pipe"] },
+    );
+  } catch (e: any) {
+    const stderr: string = e?.stderr ?? e?.message ?? String(e);
+    return err("GIT", `git log failed: ${stderr.trim()}`);
+  }
   const commits = out
     .split("\n")
     .filter(Boolean)

@@ -11,7 +11,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:watch": "vitest",
-    "mcp": "node dist/mcp/server.js",
+    "mcp": "node dist/mcp/bin.js",
     "prestart": "npm run build",
     "prepack": "npm run build"
   },
