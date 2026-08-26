@@ -162,4 +162,30 @@ Then add to your Claude Desktop config (`~/Library/Application Support/Claude/cl
 - `find_property_usage` — every event that uses a given property
 - `list_recent_changes` — git log limited to `tracking-rules/<plan>/`
 
-Authoring, validation, and preview tools land in Milestone 2.
+### Available tools (M2)
+
+**Validate:**
+- `validate_event` — check one event's schema, types, required fields
+- `validate_plan` — validate every event in a plan snapshot
+- `lint_rules` — deep lint including orphan events (yaml ↔ snapshot)
+
+**Preview:**
+- `preview_markdown` — render docs/<plan>.md from local YAML, with diff vs committed
+- `preview_segment_payload` — see the exact JSON that would PATCH to Segment
+
+**Author (write modes: files | branch | pr; default branch):**
+- `add_event` — create a new event YAML
+- `update_event` — patch description, labels, or properties
+- `remove_event` — delete an event (requires confirm: true)
+- `bulk_rename_property` — rename a property across every event (default dry_run: true)
+- `bulk_add_property` — add a property to every event matching a filter
+
+### Configuring write mode
+
+Add `MCP_WRITE_MODE` to the `env` block in your Claude Desktop config:
+
+- `"files"` — MCP edits YAML in your working tree; you commit and push.
+- `"branch"` — MCP creates a branch, commits, leaves you there (default).
+- `"pr"` — MCP creates a branch, pushes, opens a GitHub PR via `gh` CLI (or `GITHUB_TOKEN`).
+
+Prod tracking plans are still updated ONLY by merging to `main` — no MCP tool can bypass this.
