@@ -1,24 +1,31 @@
 import type { ServerContext, WriteMode } from "../context.js";
-import { ok, err, ToolResult } from "./result.js";
+import { ok, err, ToolResult, ToolResultError } from "./result.js";
 import {
   createBranch,
   commitPaths,
   pushBranch,
-  openPullRequest,
   GitOpsError,
   getWorkingTreeStatus,
   checkoutBranch,
+  checkoutTrackingBranch,
   deleteBranch,
   discardWorkingTreeChanges,
+  locateBranch,
+  revParse,
 } from "../../lib/git-ops.js";
+import { ForgeError } from "../../lib/forge.js";
 
 export interface WriteOutput {
   files_changed: string[];
   mode: WriteMode;
   branch?: string;
   commit_sha?: string;
+  /** True when the write was appended to a caller-supplied existing branch. */
+  reused_branch?: boolean;
   pr_url?: string;
   pr_number?: number;
+  /** True when pr mode found an already-open PR for the branch. */
+  pr_reused?: boolean;
   next_steps?: string;
   [k: string]: unknown;
 }
@@ -26,6 +33,35 @@ export interface WriteOutput {
 export interface MutatorResult {
   files_changed: string[];
   extras?: Record<string, unknown>;
+}
+
+/**
+ * Thrown by a mutator to refuse the write with a typed error (e.g. VALIDATION
+ * when the event already exists on the target branch). The write flow rolls
+ * back exactly as for any other failure and returns `error` unchanged.
+ */
+export class WriteAbort extends Error {
+  constructor(readonly error: ToolResultError) {
+    super(error.message);
+    this.name = "WriteAbort";
+  }
+}
+
+export function abort(
+  code: ToolResultError["code"],
+  message: string,
+  extras?: { details?: unknown; remediation?: string },
+): never {
+  throw new WriteAbort({ code, message, ...extras });
+}
+
+export interface WriteFlowOptions {
+  /**
+   * Existing session branch to append to (from a previous call's `branch`).
+   * Omit to create a fresh tp/… branch off the default branch.
+   */
+  branch?: string;
+  now?: number;
 }
 
 export function slugify(key: string): string {
@@ -48,20 +84,39 @@ export function branchName(planPath: string, key: string, verb: string, now: num
   return `tp/${planPath}/${verb}-${slugify(key)}-${now}`;
 }
 
+function toToolError(e: unknown): ToolResultError {
+  if (e instanceof WriteAbort) return e.error;
+  if (e instanceof GitOpsError) {
+    return {
+      code: e.code,
+      message: e.message,
+      details: e.details,
+      ...(e.remediation ? { remediation: e.remediation } : {}),
+    };
+  }
+  if (e instanceof ForgeError) return { code: e.code, message: e.message, details: e.details };
+  return { code: "UNKNOWN", message: `Unexpected error: ${(e as Error).message}` };
+}
+
 /**
  * Core write-flow for all mutating MCP tools.
  *
- * - "files" mode: run the mutator inline, no git branch/commit.
+ * - "files" mode: run the mutator inline, no git branch/commit. `branch` is
+ *   ignored with a warning.
  * - "branch" / "pr" mode:
- *   1. Record the current branch so we can restore it afterwards.
- *   2. Create a tp/… branch.
- *   3. Run the mutator.  If it returns no files (Fix 3), tear down the branch
- *      and return ok with a warning rather than attempting an empty commit.
- *   4. Commit (and push / open PR for pr mode).
- *   5. `finally`: always restore the original branch so the caller's working
- *      tree is left where it started (Fix 1).
- *   6. `catch`: on any error, hard-reset the tp branch (index + tree) and
- *      clean new untracked files, then delete the tp branch (Fix 2).
+ *   1. Record the caller's current branch so it can be restored.
+ *   2. Check out the target: the caller-supplied existing `branch` (local, or
+ *      a tracking branch when it only exists on origin), or a new tp/… branch
+ *      off `ctx.defaultBranch`. Record the target's pre-call sha.
+ *   3. Run the mutator on the target. Mutators validate against the target's
+ *      files and may `abort()` with a typed error.
+ *   4. Zero files → no commit; a new branch is deleted, an existing one kept.
+ *   5. Commit; in pr mode push (never forced) and reuse the open PR for the
+ *      branch if there is one, otherwise open one against the default branch.
+ *   6. On any failure before the push lands: hard-reset the target to its
+ *      pre-call sha, clean files the write created, restore the caller's
+ *      branch, and delete the target only if this call created it. After a
+ *      successful push nothing is rolled back, so local and origin agree.
  */
 export async function applyWriteFlow(
   ctx: ServerContext,
@@ -71,95 +126,167 @@ export async function applyWriteFlow(
   verb: WriteVerb,
   mode: WriteMode,
   mutator: () => MutatorResult,
-  now: number = Date.now(),
+  opts: WriteFlowOptions = {},
 ): Promise<ToolResult<WriteOutput>> {
   const pre = ctx.preflightWrite(mode);
   if (pre.blocked) return { ok: false, error: pre.error };
 
   if (mode === "files") {
-    const { files_changed, extras } = mutator();
-    return ok({ files_changed, mode, ...(extras ?? {}) });
+    const warnings = opts.branch
+      ? [`branch "${opts.branch}" ignored in files mode; edits were made in the working tree.`]
+      : undefined;
+    try {
+      const { files_changed, extras } = mutator();
+      return ok({ files_changed, mode, ...(extras ?? {}) }, warnings);
+    } catch (e) {
+      if (e instanceof WriteAbort) return { ok: false, error: e.error };
+      throw e;
+    }
+  }
+
+  const reused = opts.branch !== undefined;
+  if (reused && opts.branch === ctx.defaultBranch) {
+    return err(
+      "VALIDATION",
+      `Refusing to write directly to the default branch "${ctx.defaultBranch}".`,
+      { remediation: "Omit branch to create a new tp/… branch, or pass a session branch." },
+    );
   }
 
   const originalBranch = getWorkingTreeStatus(ctx.repoPath).current_branch;
-  const newBranch = branchName(planPath, key, verb, now);
-  let branchCreated = false;
-  let hadError = false;
+  const target = opts.branch ?? branchName(planPath, key, verb, opts.now ?? Date.now());
+  let onTarget = false;
+  /** This call created the tp/… branch (never true for a reused branch). */
+  let createdNew = false;
+  let preSha: string | undefined;
+  let pushed = false;
+  let failed = false;
   let changedPaths: string[] = [];
 
   try {
-    createBranch(ctx.repoPath, newBranch);
-    branchCreated = true;
+    if (reused) {
+      const where = locateBranch(ctx.repoPath, target);
+      if (where === null) {
+        return err("NOT_FOUND", `Branch "${target}" does not exist locally or on origin.`, {
+          remediation:
+            "Omit branch to create one, or pass the branch returned by an earlier call.",
+        });
+      }
+      if (where === "remote") {
+        checkoutTrackingBranch(ctx.repoPath, target);
+      } else if (target !== originalBranch) {
+        checkoutBranch(ctx.repoPath, target);
+      }
+    } else {
+      createBranch(ctx.repoPath, target, ctx.defaultBranch);
+      createdNew = true;
+    }
+    onTarget = true;
+    preSha = revParse(ctx.repoPath, "HEAD");
 
     const { files_changed, extras } = mutator();
     changedPaths = files_changed;
 
-    // Fix 3: zero-affected short-circuit — no commit, no branch left behind
     if (files_changed.length === 0) {
-      try { checkoutBranch(ctx.repoPath, originalBranch); } catch { /* best effort */ }
-      try { deleteBranch(ctx.repoPath, newBranch); } catch { /* best effort */ }
-      branchCreated = false;
+      cleanupTarget(ctx, originalBranch, target, { deleteBranch: createdNew });
+      onTarget = false;
       return ok(
-        { files_changed: [], mode, ...(extras ?? {}) },
+        { files_changed: [], mode, ...(reused ? { branch: target, reused_branch: true } : {}), ...(extras ?? {}) },
         ["No files matched — no changes to commit."],
       );
     }
 
     const subject = commitSubject(planPath, verb, key);
-    const commitMessage =
-      `${subject}\n\n` +
-      `- Generated via tracking-plans-mcp`;
-    const commit_sha = commitPaths(ctx.repoPath, files_changed, commitMessage);
+    const commit_sha = commitPaths(
+      ctx.repoPath,
+      files_changed,
+      `${subject}\n\n- Generated via tracking-plans-mcp`,
+    );
+    const base = { files_changed, mode, branch: target, commit_sha, reused_branch: reused };
 
     if (mode === "branch") {
       return ok({
-        files_changed,
-        mode,
-        branch: newBranch,
-        commit_sha,
-        next_steps: `git push -u origin ${newBranch} && open PR`,
+        ...base,
+        next_steps:
+          `Pass branch: "${target}" to further write tools to keep this session on one branch; ` +
+          `push with \`git push -u origin ${target}\` or use mode: "pr".`,
         ...(extras ?? {}),
       });
     }
 
-    // pr mode
-    pushBranch(ctx.repoPath, newBranch);
-    const pr = await openPullRequest(ctx.repoPath, {
-      branch: newBranch,
-      title: subject,
-      body: `Generated by tracking-plans-mcp.\n\nFiles changed:\n${files_changed
-        .map((f) => `- \`${f}\``)
-        .join("\n")}`,
-    });
+    pushBranch(ctx.repoPath, target);
+    pushed = true;
+    const existing = await ctx.forge.findOpenPullRequest(target);
+    const pr =
+      existing ??
+      (await ctx.forge.openPullRequest({
+        branch: target,
+        base: ctx.defaultBranch,
+        title: subject,
+        body: `Generated by tracking-plans-mcp.\n\nFiles changed:\n${files_changed
+          .map((f) => `- \`${f}\``)
+          .join("\n")}`,
+      }));
     return ok({
-      files_changed,
-      mode,
-      branch: newBranch,
-      commit_sha,
-      pr_url: pr.pr_url,
-      pr_number: pr.pr_number,
+      ...base,
+      pr_url: pr.url,
+      pr_number: pr.number,
+      pr_reused: existing !== null,
       ...(extras ?? {}),
     });
   } catch (e) {
-    hadError = true;
-    // Fix 2: discard partial writes AND anything staged by a failed commit
-    // (e.g. pre-commit hook) while still on the tp branch, so none of it
-    // follows the user back to their original branch.
-    if (branchCreated) {
-      try { discardWorkingTreeChanges(ctx.repoPath, changedPaths); } catch { /* best effort */ }
+    failed = true;
+    const error = toToolError(e);
+    if (pushed) {
+      // The commit is on origin; keep it so a retry with `branch` fast-forwards.
+      return {
+        ok: false,
+        error: {
+          ...error,
+          details: { cause: error.details, branch: target, pushed: true },
+          remediation:
+            error.remediation ??
+            `The commit was pushed to "${target}" but the PR step failed. Retry with branch: "${target}".`,
+        },
+      };
     }
-    if (e instanceof GitOpsError) {
-      return { ok: false, error: { code: e.code, message: e.message, details: e.details } };
-    }
-    return err("UNKNOWN", `Unexpected error: ${(e as Error).message}`);
-  } finally {
-    // Fix 1: always restore the caller's original branch (on both success and error paths)
-    if (branchCreated) {
-      try { checkoutBranch(ctx.repoPath, originalBranch); } catch { /* best effort */ }
-      // On error: also delete the empty/partial tp branch
-      if (hadError) {
-        try { deleteBranch(ctx.repoPath, newBranch); } catch { /* best effort */ }
+    if (onTarget && preSha) {
+      try {
+        discardWorkingTreeChanges(ctx.repoPath, changedPaths, preSha);
+      } catch {
+        /* best effort */
       }
+    }
+    return { ok: false, error };
+  } finally {
+    // Always return the caller to where they started. A branch this call
+    // created is deleted only on failure before anything reached origin.
+    if (onTarget) {
+      cleanupTarget(ctx, originalBranch, target, {
+        deleteBranch: failed && createdNew && !pushed,
+      });
+    }
+  }
+}
+
+function cleanupTarget(
+  ctx: ServerContext,
+  originalBranch: string,
+  target: string,
+  opts: { deleteBranch: boolean },
+): void {
+  if (target !== originalBranch) {
+    try {
+      checkoutBranch(ctx.repoPath, originalBranch);
+    } catch {
+      /* best effort */
+    }
+  }
+  if (opts.deleteBranch && target !== originalBranch) {
+    try {
+      deleteBranch(ctx.repoPath, target);
+    } catch {
+      /* best effort */
     }
   }
 }

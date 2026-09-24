@@ -109,13 +109,17 @@ export function ruleToYaml(rule: Rule): YamlRule {
   return yamlRule;
 }
 
-export function loadYamlRuleFile(filePath: string): YamlRule {
-  const raw = readFileSync(filePath, "utf8");
+/** Parses one rule-file's YAML text; `source` names it in errors. */
+export function parseYamlRule(raw: string, source: string): YamlRule {
   const parsed = yaml.load(raw) as { rules: YamlRule[] };
   if (!parsed?.rules?.[0]) {
-    throw new Error(`Expected rules[0] in YAML file at ${filePath}`);
+    throw new Error(`Expected rules[0] in YAML file at ${source}`);
   }
   return parsed.rules[0];
+}
+
+export function loadYamlRuleFile(filePath: string): YamlRule {
+  return parseYamlRule(readFileSync(filePath, "utf8"), filePath);
 }
 
 export function writeYamlRuleFile(filePath: string, yamlRule: YamlRule): void {
