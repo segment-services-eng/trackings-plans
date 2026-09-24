@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import { main } from "./server.js";
+import { logToStderr, main } from "./server.js";
 
 main().catch((err) => {
-  console.error(err);
+  logToStderr(err);
   process.exit(1);
 });

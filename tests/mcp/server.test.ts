@@ -51,3 +51,56 @@ describe("mcp/server", () => {
     expect(server.listRegisteredToolNames().length).toBeGreaterThan(0);
   });
 });
+
+describe("mcp/server response redaction", () => {
+  const TOKEN = "ghp_abcdefghijklmnopqrstuvwxyz0123456789";
+
+  async function connect(env: Record<string, string>, planName: string) {
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+    const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+    const dir = mkdtempSync(join(tmpdir(), "tp-mcp-redact-"));
+    mkdirSync(join(dir, "config"), { recursive: true });
+    writeFileSync(
+      join(dir, "config", "tracking-plans-config.json"),
+      JSON.stringify({
+        plans: [{ name: planName, path: "javascript", dev_secret: "D", prod_secret: "P" }],
+      }),
+    );
+    const server = createServer(resolveContext({ REPO_PATH: dir, ...env }));
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "t", version: "0" });
+    await Promise.all([server.connect(a), client.connect(b)]);
+    return client;
+  }
+
+  it("redacts the configured SEGMENT_PUBLIC_API_TOKEN value from tool results", async () => {
+    const secret = "custom-segment-token-value";
+    const client = await connect({ SEGMENT_PUBLIC_API_TOKEN: secret }, secret);
+    const res: any = await client.callTool({ name: "list_plans", arguments: {} });
+    const text = res.content[0].text as string;
+    expect(text).not.toContain(secret);
+    expect(text).toContain("[REDACTED]");
+  });
+
+  it("redacts token patterns from tool results even when not in env", async () => {
+    const client = await connect({}, `Plan ${TOKEN}`);
+    const res: any = await client.callTool({ name: "list_plans", arguments: {} });
+    expect(res.content[0].text).not.toContain(TOKEN);
+  });
+
+  it("redacts tokens from thrown tool errors", async () => {
+    const client = await connect({ GITHUB_TOKEN: TOKEN }, "JavaScript");
+    let message = "";
+    try {
+      const res: any = await client.callTool({
+        name: "list_plans",
+        arguments: { [TOKEN]: 1 },
+      });
+      message = JSON.stringify(res);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    expect(message.length).toBeGreaterThan(0);
+    expect(message).not.toContain(TOKEN);
+  });
+});
