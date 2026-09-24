@@ -47,6 +47,12 @@ import {
   bulkAddProperty,
   bulkAddPropertyInput,
 } from "./bulk.js";
+import {
+  resetDevFromProd,
+  resetDevFromProdInput,
+  pullFromSegment,
+  pullFromSegmentInput,
+} from "./admin.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
 
@@ -163,6 +169,18 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       "Add a property to every event matching an optional filter. Default dry_run: true.",
       bulkAddPropertyInput,
       bulkAddProperty,
+    ),
+    makeTool(
+      "reset_dev_from_prod",
+      "Make the DEV Segment tracking plan match the prod snapshot (plans/prod/<plan>/), then refresh plans/dev/<plan>/ from Segment. Never targets prod. Requires confirm: true. Modes: files | branch (default) | pr.",
+      resetDevFromProdInput,
+      resetDevFromProd,
+    ),
+    makeTool(
+      "pull_from_segment",
+      "Refresh plans/<env>/<plan>/current-rules.json from Segment (read-only on Segment). Modes: files | branch (default) | pr.",
+      pullFromSegmentInput,
+      pullFromSegment,
     ),
   ];
 
