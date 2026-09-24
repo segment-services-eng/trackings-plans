@@ -1,6 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const { createSegmentClient } = require('../dist/lib/segment-api.js');
+const { formatSnapshotFiles } = require('../dist/lib/snapshot-sync.js');
 
 async function main() {
   const planDir = process.env.PLAN_DIR;
@@ -13,38 +14,17 @@ async function main() {
   const client = createSegmentClient({ apiKey });
   const rules = await client.fetchAllRules(trackingPlanId);
   fs.mkdirSync(planDir, { recursive: true });
-  const filePath = path.join(planDir, 'current-rules.json');
-  fs.writeFileSync(filePath, JSON.stringify({ rules }, null, 2));
-  console.log(`Saved ${rules.length} rules to ${filePath}`);
-  splitFileIfLarge(filePath, planDir);
-}
-
-function splitFileIfLarge(filePath, planDir) {
-  const MAX = 100 * 1024 * 1024;
-  const CHUNK = 90 * 1024 * 1024;
-  const size = fs.statSync(filePath).size;
-  if (size <= MAX) return;
-  const { rules } = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
-  let idx = 1;
-  let cur = [];
-  for (const rule of rules) {
-    cur.push(rule);
-    if (Buffer.byteLength(JSON.stringify({ rules: cur }), 'utf-8') >= CHUNK) {
-      fs.writeFileSync(
-        path.join(planDir, `current-rules-${idx}.json`),
-        JSON.stringify({ rules: cur }, null, 2),
-      );
-      idx++;
-      cur = [];
-    }
+  const files = formatSnapshotFiles(rules);
+  for (const f of files) {
+    fs.writeFileSync(path.join(planDir, f.name), f.content);
   }
-  if (cur.length) {
-    fs.writeFileSync(
-      path.join(planDir, `current-rules-${idx}.json`),
-      JSON.stringify({ rules: cur }, null, 2),
-    );
+  // Mirrors the previous split behavior: when chunked, the single
+  // current-rules.json is removed.
+  const single = path.join(planDir, 'current-rules.json');
+  if (files[0].name !== 'current-rules.json' && fs.existsSync(single)) {
+    fs.unlinkSync(single);
   }
-  fs.unlinkSync(filePath);
+  console.log(`Saved ${rules.length} rules to ${single}`);
 }
 
 main().catch((err) => {
