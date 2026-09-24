@@ -64,3 +64,62 @@ describe("context write-mode", () => {
     expect(p.blocked).toBe(false);
   });
 });
+
+describe("context .tracking-plans-mcp.json precedence", () => {
+  function withProjectConfig(contents: string): string {
+    const dir = makeRepo();
+    writeFileSync(join(dir, ".tracking-plans-mcp.json"), contents);
+    return dir;
+  }
+
+  it("absent file: behavior unchanged (branch default, no projectConfig)", () => {
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    expect(ctx.defaultWriteMode).toBe("branch");
+    expect(ctx.projectConfig).toBeUndefined();
+  });
+
+  it("file write_mode overrides built-in default", () => {
+    const ctx = resolveContext({ REPO_PATH: withProjectConfig('{"write_mode":"files"}') });
+    expect(ctx.defaultWriteMode).toBe("files");
+    expect(ctx.projectConfig).toEqual({ write_mode: "files" });
+  });
+
+  it("env MCP_WRITE_MODE overrides file", () => {
+    const ctx = resolveContext({
+      REPO_PATH: withProjectConfig('{"write_mode":"files"}'),
+      MCP_WRITE_MODE: "pr",
+    });
+    expect(ctx.defaultWriteMode).toBe("pr");
+  });
+
+  it("tool arg overrides env and file", () => {
+    const ctx = resolveContext({
+      REPO_PATH: withProjectConfig('{"write_mode":"files"}'),
+      MCP_WRITE_MODE: "pr",
+    });
+    expect(ctx.resolveWriteMode("branch")).toBe("branch");
+    expect(ctx.resolveWriteMode(undefined)).toBe("pr");
+  });
+
+  it("invalid file throws a CONFIG error naming the file", () => {
+    const dir = withProjectConfig('{"write_mode":"sometimes"}');
+    expect(() => resolveContext({ REPO_PATH: dir })).toThrow(/\.tracking-plans-mcp\.json/);
+    try {
+      resolveContext({ REPO_PATH: dir });
+    } catch (e) {
+      expect((e as { code?: string }).code).toBe("CONFIG");
+    }
+  });
+
+  it("file containing a token is rejected without echoing it", () => {
+    const tok = "sgp_AbCdEfGhIjKlMnOpQrStUvWxYz0123456789";
+    const dir = withProjectConfig(JSON.stringify({ SEGMENT_PUBLIC_API_TOKEN: tok }));
+    try {
+      resolveContext({ REPO_PATH: dir });
+      throw new Error("expected throw");
+    } catch (e) {
+      expect((e as Error).message).toMatch(/secret/i);
+      expect((e as Error).message).not.toContain(tok);
+    }
+  });
+});

@@ -5,6 +5,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { ServerContext } from "../context.js";
+import { knownSecretsFromEnv, redactSecrets } from "../../lib/secrets.js";
 import {
   listPlans,
   listPlansInput,
@@ -193,11 +194,20 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
   }));
 
   server.setRequestHandler(CallToolRequestSchema, async (req) => {
-    const tool = tools.find((t) => t.name === req.params.name);
-    if (!tool) throw new Error(`Unknown tool: ${req.params.name}`);
-    const result = await tool.handler(ctx, req.params.arguments);
+    // Single choke point for secrets redaction: every result and every thrown
+    // error message is scrubbed before it reaches the client.
+    const known = knownSecretsFromEnv(ctx.env);
+    let result: unknown;
+    try {
+      const tool = tools.find((t) => t.name === req.params.name);
+      if (!tool) throw new Error(`Unknown tool: ${req.params.name}`);
+      result = await tool.handler(ctx, req.params.arguments);
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      throw new Error(redactSecrets(message, known));
+    }
     return {
-      content: [{ type: "text", text: JSON.stringify(result) }],
+      content: [{ type: "text", text: JSON.stringify(redactSecrets(result, known)) }],
     };
   });
 
