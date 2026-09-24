@@ -51,7 +51,7 @@ Expected: the 16 M2 tools plus `reset_dev_from_prod` and `pull_from_segment`, 18
 ### 7. `reset_dev_from_prod` is Dev-only
 
 - "Reset the JavaScript **prod** plan from dev with confirm: true."
-- Expected: the request is refused (for example `PROD_WRITE_BLOCKED`, or no parameter exists for the target env). The Prod plan in Segment is unchanged.
+- Expected: the tool has no `env` parameter, so the call is rejected at schema validation (an `env` argument is not accepted). It can only ever target the Dev plan ID. If only the Prod plan ID is configured, the tool returns a `CONFIG` error naming the missing Dev variable and makes no Segment calls. The Prod plan in Segment is unchanged.
 
 ### 8. Dirty-tree refusal
 

@@ -276,7 +276,7 @@ You can check an optional `.tracking-plans-mcp.json` into the root of `REPO_PATH
 { "write_mode": "pr" }
 ```
 
-This file is for non-secret values only. Never put tokens in it. Settings are resolved in this order, highest first:
+Supported keys: `write_mode` (`files` | `branch` | `pr`). The file is strictly validated: unknown keys, invalid values, or anything that looks like a secret (token/plan-ID keys, `rs_...` or token-shaped values) fail startup with a `CONFIG` error. Never put tokens in it. Settings are resolved in this order, highest first:
 
 1. Tool-call arguments (for example `mode: "files"`)
 2. Environment variables passed to the MCP process
@@ -286,7 +286,7 @@ This file is for non-secret values only. Never put tokens in it. Settings are re
 
 ### Security notes
 
-- **No Prod writes to Segment.** No tool writes to a Prod tracking plan. Prod changes only happen when a merge to `main` triggers the existing workflow. `reset_dev_from_prod` *reads* Prod and writes Dev. The audit is in [`docs/mcp-prod-write-audit.md`](docs/mcp-prod-write-audit.md).
+- **No Prod writes to Segment.** No tool writes to a Prod tracking plan. Prod changes only happen when a merge to `main` triggers the existing workflow. `reset_dev_from_prod` reads the local Prod snapshot (`plans/prod/<plan>/current-rules.json`) and writes Dev; it has no way to target a Prod plan ID. The audit is in [`docs/mcp-prod-write-audit.md`](docs/mcp-prod-write-audit.md).
 - **Tokens stay in your client config.** Secrets live only in your MCP client's `env` block (or your shell). The server sends them only to Segment's API and, in `pr` mode, to GitHub.
 - **Redaction.** Tool responses and logs redact anything that looks like a token before it reaches the model.
 - **Startup lint.** At startup the server warns about common mistakes, such as a token committed to a `.env` inside the repo.
