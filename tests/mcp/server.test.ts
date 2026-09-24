@@ -48,6 +48,25 @@ describe("mcp/server", () => {
   });
 });
 
+describe("mcp/server tools/list", () => {
+  it("lists the M4 workflow tools and not the removed M3 Segment tools", async () => {
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+    const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+    const server = createServer(resolveContext({ REPO_PATH: makeRepo() }));
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "t", version: "0" });
+    await Promise.all([server.connect(a), client.connect(b)]);
+    const { tools } = await client.listTools();
+    const names = tools.map((t) => t.name);
+    for (const n of ["deploy_dev", "reset_dev", "check_prod_drift", "get_workflow_run"]) {
+      expect(names).toContain(n);
+      expect(tools.find((t) => t.name === n)!.description).toContain("GitHub Actions");
+    }
+    expect(names).not.toContain("reset_dev_from_prod");
+    expect(names).not.toContain("pull_from_segment");
+  });
+});
+
 describe("mcp/server response redaction", () => {
   const TOKEN = "ghp_abcdefghijklmnopqrstuvwxyz0123456789";
 
