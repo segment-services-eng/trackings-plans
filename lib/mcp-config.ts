@@ -26,8 +26,15 @@ export const mcpConfigSchema = z
         errorMap: () => ({ message: `must be one of ${WRITE_MODES.join(", ")}` }),
       })
       .optional(),
+    default_branch: z
+      .string()
+      .regex(/^[A-Za-z0-9._\/-]+$/, "must be a valid branch name")
+      .optional(),
+    forge: z.enum(["github"]).optional(),
   })
   .strict();
+
+export const DEFAULT_BRANCH = "main";
 
 export type McpConfig = z.infer<typeof mcpConfigSchema>;
 
