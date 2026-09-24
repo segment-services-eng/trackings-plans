@@ -1,4 +1,5 @@
-import { resolve } from "node:path";
+import { existsSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { createSegmentClient, SegmentClient } from "../lib/segment-api.js";
 import {
   loadPlansConfig,
@@ -7,9 +8,17 @@ import {
   getPlanIdEnvVar,
 } from "../lib/plans-config.js";
 import { assertCleanTree, GitOpsError } from "../lib/git-ops.js";
+import {
+  isWriteMode,
+  MCP_CONFIG_FILENAME,
+  McpConfig,
+  parseMcpConfig,
+  resolveWriteModeSetting,
+  WriteMode,
+} from "../lib/mcp-config.js";
 import type { ToolResultError } from "./tools/result.js";
 
-export type WriteMode = "files" | "branch" | "pr";
+export type { WriteMode } from "../lib/mcp-config.js";
 
 export interface ServerContext {
   repoPath: string;
@@ -19,6 +28,8 @@ export interface ServerContext {
   planIdEnv: (planPath: string, env: "dev" | "prod") => string | undefined;
   resolvePlanOrThrow: (nameOrPath: string) => PlanConfig;
   segmentClient: () => SegmentClient;
+  /** Parsed `.tracking-plans-mcp.json`, or undefined when the file is absent. */
+  projectConfig?: McpConfig;
   defaultWriteMode: WriteMode;
   resolveWriteMode: (argMode?: string) => WriteMode;
   preflightWrite: (
@@ -26,11 +37,18 @@ export interface ServerContext {
   ) => { blocked: false } | { blocked: true; error: ToolResultError };
 }
 
-const WRITE_MODES: WriteMode[] = ["files", "branch", "pr"];
-
 function parseMode(raw: string | undefined, fallback: WriteMode): WriteMode {
-  if (raw && (WRITE_MODES as string[]).includes(raw)) return raw as WriteMode;
-  return fallback;
+  return isWriteMode(raw) ? raw : fallback;
+}
+
+/**
+ * Reads and validates `.tracking-plans-mcp.json` from the repo root.
+ * Returns undefined when absent; throws McpConfigError (code CONFIG) when invalid.
+ */
+export function loadProjectConfig(repoPath: string): McpConfig | undefined {
+  const path = join(repoPath, MCP_CONFIG_FILENAME);
+  if (!existsSync(path)) return undefined;
+  return parseMcpConfig(readFileSync(path, "utf8"), path);
 }
 
 export function resolveContext(
@@ -38,7 +56,9 @@ export function resolveContext(
 ): ServerContext {
   const repoPath = resolve(env.REPO_PATH ?? process.cwd());
   const segmentApiKey = env.SEGMENT_PUBLIC_API_TOKEN;
-  const defaultWriteMode: WriteMode = parseMode(env.MCP_WRITE_MODE, "branch");
+  // Precedence: tool args (resolveWriteMode) > env > .tracking-plans-mcp.json > default.
+  const projectConfig = loadProjectConfig(repoPath);
+  const defaultWriteMode = resolveWriteModeSetting({ env, file: projectConfig }).mode;
 
   // Lazy-load plans so resolveContext can be called even when the config is
   // temporarily invalid (e.g. dirty working tree during preflight checks).
@@ -53,6 +73,7 @@ export function resolveContext(
     env,
     get plans() { return getPlans(); },
     segmentApiKey,
+    projectConfig,
     planIdEnv: (planPath, envKind) => {
       const plan = getPlans().find(
         (p) => p.path.toLowerCase() === planPath.toLowerCase(),
