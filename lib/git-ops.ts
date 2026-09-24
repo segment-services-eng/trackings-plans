@@ -1,12 +1,13 @@
 import { execFileSync } from "node:child_process";
 
-export type GitOpsCode = "DIRTY_TREE" | "GIT" | "GH_CLI" | "GITHUB_API";
+export type GitOpsCode = "DIRTY_TREE" | "GIT";
 
 export class GitOpsError extends Error {
   constructor(
     readonly code: GitOpsCode,
     message: string,
     readonly details?: unknown,
+    readonly remediation?: string,
   ) {
     super(message);
   }
@@ -53,48 +54,82 @@ export function assertCleanTree(repoPath: string): void {
   }
 }
 
-/** Local branch every tp/… branch is based on. */
+/**
+ * @deprecated Use `ctx.defaultBranch` (the `default_branch` config). Kept only
+ * so `mcp/tools/admin.ts` compiles until those tools are removed in M4.
+ */
 export const BASE_BRANCH = "main";
 
-/**
- * The ref `createBranch` bases new branches on: local `main` when it exists,
- * otherwise `HEAD`. Readers that must see the same content the tp branch
- * starts from (e.g. reset_dev_from_prod) should read from this ref.
- */
-export function branchBaseRef(repoPath: string): string {
+function hasOrigin(repoPath: string): boolean {
   try {
-    git(repoPath, ["rev-parse", "--verify", "--quiet", `refs/heads/${BASE_BRANCH}`]);
-    return BASE_BRANCH;
+    git(repoPath, ["remote", "get-url", "origin"]);
+    return true;
   } catch {
-    return "HEAD";
+    return false;
+  }
+}
+
+function refExists(repoPath: string, ref: string): boolean {
+  try {
+    git(repoPath, ["rev-parse", "--verify", "--quiet", ref]);
+    return true;
+  } catch {
+    return false;
   }
 }
 
 /**
- * Create a new branch based on the local `main` branch.
- * If an origin remote exists, attempts a best-effort `git fetch origin main` first
- * to bring local main up to date.  Falls back to `HEAD` if local `main` doesn't exist.
+ * The ref `createBranch` bases new branches on: local `baseBranch` when it
+ * exists, otherwise `HEAD`. Readers that must see the same content the tp
+ * branch starts from should read from this ref.
  */
-export function createBranch(repoPath: string, branchName: string): void {
-  const hasOrigin = (() => {
-    try {
-      git(repoPath, ["remote", "get-url", "origin"]);
-      return true;
-    } catch {
-      return false;
-    }
-  })();
+export function branchBaseRef(repoPath: string, baseBranch: string = "main"): string {
+  return refExists(repoPath, `refs/heads/${baseBranch}`) ? baseBranch : "HEAD";
+}
 
-  if (hasOrigin) {
+/**
+ * Create and check out a new branch based on local `baseBranch` (the repo's
+ * default branch). Best-effort `git fetch origin <baseBranch>` first when an
+ * origin remote exists. Falls back to `HEAD` if local `baseBranch` doesn't exist.
+ */
+export function createBranch(repoPath: string, branchName: string, baseBranch: string): void {
+  if (hasOrigin(repoPath)) {
     try {
-      git(repoPath, ["fetch", "origin", "main"]);
+      git(repoPath, ["fetch", "origin", baseBranch]);
     } catch {
-      // proceed even if fetch fails; local main will be used
+      // proceed even if fetch fails; local base branch will be used
     }
   }
+  git(repoPath, ["checkout", "-b", branchName, branchBaseRef(repoPath, baseBranch)]);
+}
 
-  // Base on local main (potentially just fast-forwarded), fall back to HEAD
-  git(repoPath, ["checkout", "-b", branchName, branchBaseRef(repoPath)]);
+/**
+ * Where an existing branch lives: `"local"` (refs/heads), `"remote"` (only on
+ * origin — fetched into refs/remotes/origin), or `null` when it exists nowhere.
+ */
+export function locateBranch(repoPath: string, branchName: string): "local" | "remote" | null {
+  if (refExists(repoPath, `refs/heads/${branchName}`)) return "local";
+  if (!hasOrigin(repoPath)) return null;
+  try {
+    git(repoPath, [
+      "fetch",
+      "origin",
+      `+refs/heads/${branchName}:refs/remotes/origin/${branchName}`,
+    ]);
+  } catch {
+    return null; // not on origin (or origin unreachable)
+  }
+  return refExists(repoPath, `refs/remotes/origin/${branchName}`) ? "remote" : null;
+}
+
+/** Create local `branchName` tracking `origin/<branchName>` and check it out. */
+export function checkoutTrackingBranch(repoPath: string, branchName: string): void {
+  git(repoPath, ["checkout", "-b", branchName, "--track", `origin/${branchName}`]);
+}
+
+/** Full sha of `ref`. */
+export function revParse(repoPath: string, ref: string): string {
+  return git(repoPath, ["rev-parse", "--verify", ref]).trim();
 }
 
 /** Switch to an existing branch. Throws GitOpsError on failure. */
@@ -108,14 +143,21 @@ export function deleteBranch(repoPath: string, branchName: string): void {
 }
 
 /**
- * Fully roll back the working tree AND index to HEAD: `git reset --hard HEAD`
- * drops staged adds/deletes and restores tracked files; `git clean -fd` on
- * `paths` then removes files the mutator created that were never staged.
- * Only call this on a throwaway tp/… branch.
+ * Fully roll back the working tree AND index to `ref` (default HEAD):
+ * `git reset --hard <ref>` drops staged adds/deletes and restores tracked
+ * files; `git clean -fd` then removes `paths` plus any untracked files still
+ * present. Write tools only run on a clean tree (dirty-tree rule), so every
+ * untracked file at this point was created by the failed write.
  */
-export function discardWorkingTreeChanges(repoPath: string, paths: string[] = []): void {
-  git(repoPath, ["reset", "--hard", "HEAD"]);
-  if (paths.length > 0) git(repoPath, ["clean", "-fd", "--", ...paths]);
+export function discardWorkingTreeChanges(
+  repoPath: string,
+  paths: string[] = [],
+  ref: string = "HEAD",
+): void {
+  git(repoPath, ["reset", "--hard", ref]);
+  const leftovers = getWorkingTreeStatus(repoPath).dirty_files;
+  const toClean = [...new Set([...paths, ...leftovers])];
+  if (toClean.length > 0) git(repoPath, ["clean", "-fd", "--", ...toClean]);
 }
 
 /** Names (not paths) of the blobs directly under `dir` at `ref`; [] if absent. */
@@ -144,81 +186,24 @@ export function commitPaths(
   return git(repoPath, ["rev-parse", "HEAD"]).trim();
 }
 
+/**
+ * `git push -u origin <branch>`. Never forces. A rejected (non-fast-forward)
+ * push throws GitOpsError("GIT") with `details.reason = "non_fast_forward"`
+ * and a pull/rebase remediation.
+ */
 export function pushBranch(repoPath: string, branchName: string): void {
-  git(repoPath, ["push", "-u", "origin", branchName]);
-}
-
-export interface OpenPullRequestOptions {
-  branch: string;
-  title: string;
-  body: string;
-  base?: string;
-}
-
-export async function openPullRequest(
-  repoPath: string,
-  opts: OpenPullRequestOptions,
-): Promise<{ pr_url: string; pr_number: number }> {
-  const base = opts.base ?? "main";
   try {
-    const out = execFileSync(
-      "gh",
-      [
-        "pr",
-        "create",
-        "--base",
-        base,
-        "--head",
-        opts.branch,
-        "--title",
-        opts.title,
-        "--body",
-        opts.body,
-      ],
-      { cwd: repoPath, encoding: "utf8" },
-    ).trim();
-    const prMatch = out.match(/\/pull\/(\d+)/);
-    if (!prMatch) {
-      throw new GitOpsError("GH_CLI", `Could not parse PR URL from gh output: ${out}`);
-    }
-    return { pr_url: out, pr_number: Number(prMatch[1]) };
-  } catch (e: any) {
-    const token = process.env.GITHUB_TOKEN;
-    if (!token) {
+    git(repoPath, ["push", "-u", "origin", branchName]);
+  } catch (e) {
+    const msg = (e as Error).message;
+    if (/\[rejected\]|non-fast-forward|fetch first|\(stale info\)/i.test(msg)) {
       throw new GitOpsError(
-        "GH_CLI",
-        `gh pr create failed and GITHUB_TOKEN is not set: ${e.stderr ?? e.message}`,
+        "GIT",
+        `Push of "${branchName}" was rejected: origin/${branchName} has commits this clone does not.`,
+        { reason: "non_fast_forward", branch: branchName, stderr: msg },
+        `Run \`git checkout ${branchName} && git pull --rebase origin ${branchName}\` (then return to your branch) and retry. The MCP never force-pushes.`,
       );
     }
-    return openPullRequestViaOctokit(repoPath, opts, base, token);
-  }
-}
-
-async function openPullRequestViaOctokit(
-  repoPath: string,
-  opts: OpenPullRequestOptions,
-  base: string,
-  token: string,
-): Promise<{ pr_url: string; pr_number: number }> {
-  const { Octokit } = await import("@octokit/rest");
-  const url = git(repoPath, ["config", "--get", "remote.origin.url"]).trim();
-  const match = url.match(/[:/]([^/:]+)\/([^/]+?)(?:\.git)?$/);
-  if (!match) {
-    throw new GitOpsError("GITHUB_API", `Cannot parse owner/repo from origin: ${url}`);
-  }
-  const [, owner, repo] = match;
-  const octokit = new Octokit({ auth: token });
-  try {
-    const res = await octokit.pulls.create({
-      owner,
-      repo,
-      head: opts.branch,
-      base,
-      title: opts.title,
-      body: opts.body,
-    });
-    return { pr_url: res.data.html_url, pr_number: res.data.number };
-  } catch (e: any) {
-    throw new GitOpsError("GITHUB_API", `Octokit PR create failed: ${e.message}`, e);
+    throw e;
   }
 }

@@ -50,14 +50,14 @@ describe("git-ops", () => {
 
   it("createBranch creates a new branch from HEAD when no origin", () => {
     const repo = initRepo();
-    createBranch(repo, "feat/new-branch");
+    createBranch(repo, "feat/new-branch", "main");
     const s = getWorkingTreeStatus(repo);
     expect(s.current_branch).toBe("feat/new-branch");
   });
 
   it("commitPaths stages and commits given files and returns SHA", () => {
     const repo = initRepo();
-    createBranch(repo, "feat/edit");
+    createBranch(repo, "feat/edit", "main");
     const filePath = join(repo, "hello.txt");
     writeFileSync(filePath, "world");
     const sha = commitPaths(repo, ["hello.txt"], "feat: add hello");
