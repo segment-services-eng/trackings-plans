@@ -54,12 +54,6 @@ export function assertCleanTree(repoPath: string): void {
   }
 }
 
-/**
- * @deprecated Use `ctx.defaultBranch` (the `default_branch` config). Kept only
- * so `mcp/tools/admin.ts` compiles until those tools are removed in M4.
- */
-export const BASE_BRANCH = "main";
-
 function hasOrigin(repoPath: string): boolean {
   try {
     git(repoPath, ["remote", "get-url", "origin"]);
@@ -83,7 +77,7 @@ function refExists(repoPath: string, ref: string): boolean {
  * exists, otherwise `HEAD`. Readers that must see the same content the tp
  * branch starts from should read from this ref.
  */
-export function branchBaseRef(repoPath: string, baseBranch: string = "main"): string {
+export function branchBaseRef(repoPath: string, baseBranch: string): string {
   return refExists(repoPath, `refs/heads/${baseBranch}`) ? baseBranch : "HEAD";
 }
 

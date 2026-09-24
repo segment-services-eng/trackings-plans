@@ -30,16 +30,12 @@ describe("mcp/server", () => {
     expect(ctx.repoPath).toBe(repo);
   });
 
-  it("resolveContext exposes planIdEnv lookup that returns undefined if unset", () => {
+  it("resolveContext holds no Segment credentials or client", () => {
     const repo = makeRepo();
-    const ctx = resolveContext({ REPO_PATH: repo });
-    expect(ctx.planIdEnv("javascript", "dev")).toBeUndefined();
-  });
-
-  it("resolveContext exposes planIdEnv lookup that returns value from env", () => {
-    const repo = makeRepo();
-    const ctx = resolveContext({ REPO_PATH: repo, DEV_JS: "rs_abc" });
-    expect(ctx.planIdEnv("javascript", "dev")).toBe("rs_abc");
+    const ctx: any = resolveContext({ REPO_PATH: repo, SEGMENT_PUBLIC_API_TOKEN: "sgp_x", DEV_JS: "rs_abc" });
+    expect(ctx.segmentApiKey).toBeUndefined();
+    expect(ctx.segmentClient).toBeUndefined();
+    expect(ctx.planIdEnv).toBeUndefined();
   });
 
   it("createServer registers at least one tool", () => {

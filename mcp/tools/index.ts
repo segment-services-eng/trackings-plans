@@ -49,11 +49,15 @@ import {
   bulkAddPropertyInput,
 } from "./bulk.js";
 import {
-  resetDevFromProd,
-  resetDevFromProdInput,
-  pullFromSegment,
-  pullFromSegmentInput,
-} from "./admin.js";
+  deployDev,
+  deployDevInput,
+  resetDev,
+  resetDevInput,
+  checkProdDrift,
+  checkProdDriftInput,
+  getWorkflowRun,
+  getWorkflowRunInput,
+} from "./workflows.js";
 
 type Handler = (ctx: ServerContext, args: any) => Promise<unknown>;
 
@@ -172,16 +176,28 @@ export function registerTools(server: Server, ctx: ServerContext): string[] {
       bulkAddProperty,
     ),
     makeTool(
-      "reset_dev_from_prod",
-      "Make the DEV Segment tracking plan match the prod snapshot (plans/prod/<plan>/), then refresh plans/dev/<plan>/ from Segment. Never targets prod. Requires confirm: true. Modes: files | branch (default) | pr.",
-      resetDevFromProdInput,
-      resetDevFromProd,
+      "deploy_dev",
+      "Deploy a branch's tracking-rules YAML to the shared DEV Segment tracking plan by triggering the deploy-dev.yml GitHub Actions workflow (where the Segment token lives; the MCP never calls Segment). Pushes `branch` first if it has no upstream or is ahead of origin. Refuses the default branch. plan: a plan name/path, or omit for all plans. wait_seconds (0-45, default 0) waits for the run; on timeout returns status in_progress/queued — poll with get_workflow_run.",
+      deployDevInput,
+      deployDev,
     ),
     makeTool(
-      "pull_from_segment",
-      "Refresh plans/<env>/<plan>/current-rules.json from Segment (read-only on Segment). Modes: files | branch (default) | pr.",
-      pullFromSegmentInput,
-      pullFromSegment,
+      "reset_dev",
+      "Reset the shared DEV Segment tracking plan from the committed prod snapshot on the default branch by triggering the reset-dev.yml GitHub Actions workflow (where the Segment token lives). Requires confirm: true. plan: a plan name/path, or omit for all plans. wait_seconds (0-45, default 0).",
+      resetDevInput,
+      resetDev,
+    ),
+    makeTool(
+      "check_prod_drift",
+      "Check whether the PROD Segment tracking plans drifted from the committed snapshot by triggering the prod-drift.yml GitHub Actions workflow (where the Segment token lives). Drift is reported via a PR on tp/drift/prod and in the run result. wait_seconds (0-45, default 0).",
+      checkProdDriftInput,
+      checkProdDrift,
+    ),
+    makeTool(
+      "get_workflow_run",
+      "Get the status/conclusion/result of a GitHub Actions workflow run triggered by deploy_dev, reset_dev or check_prod_drift. Pass run_id, or request_id + workflow. wait_seconds (0-45, default 0) waits for completion. A run that concluded non-success returns error code WORKFLOW with run_url and result.",
+      getWorkflowRunInput,
+      getWorkflowRun,
     ),
   ];
 

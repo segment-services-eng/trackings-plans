@@ -1,12 +1,6 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
-import { createSegmentClient, SegmentClient } from "../lib/segment-api.js";
-import {
-  loadPlansConfig,
-  PlanConfig,
-  resolvePlan,
-  getPlanIdEnvVar,
-} from "../lib/plans-config.js";
+import { loadPlansConfig, PlanConfig, resolvePlan } from "../lib/plans-config.js";
 import { assertCleanTree, GitOpsError } from "../lib/git-ops.js";
 import {
   isWriteMode,
@@ -27,10 +21,7 @@ export interface ServerContext {
   repoPath: string;
   env: Record<string, string | undefined>;
   plans: PlanConfig[];
-  segmentApiKey?: string;
-  planIdEnv: (planPath: string, env: "dev" | "prod") => string | undefined;
   resolvePlanOrThrow: (nameOrPath: string) => PlanConfig;
-  segmentClient: () => SegmentClient;
   /** Parsed `.tracking-plans-mcp.json`, or undefined when the file is absent. */
   projectConfig?: McpConfig;
   /** Branch tp/… branches are based on and PRs target (`default_branch`, default "main"). */
@@ -68,7 +59,6 @@ export function resolveContext(
   opts: ResolveContextOptions = {},
 ): ServerContext {
   const repoPath = resolve(env.REPO_PATH ?? process.cwd());
-  const segmentApiKey = env.SEGMENT_PUBLIC_API_TOKEN;
   // Precedence: tool args (resolveWriteMode) > env > .tracking-plans-mcp.json > default.
   const projectConfig = loadProjectConfig(repoPath);
   const defaultWriteMode = resolveWriteModeSetting({ env, file: projectConfig }).mode;
@@ -88,24 +78,8 @@ export function resolveContext(
     repoPath,
     env,
     get plans() { return getPlans(); },
-    segmentApiKey,
     projectConfig,
-    planIdEnv: (planPath, envKind) => {
-      const plan = getPlans().find(
-        (p) => p.path.toLowerCase() === planPath.toLowerCase(),
-      );
-      if (!plan) return undefined;
-      return env[getPlanIdEnvVar(plan, envKind)];
-    },
     resolvePlanOrThrow: (nameOrPath) => resolvePlan(getPlans(), nameOrPath),
-    segmentClient: () => {
-      if (!segmentApiKey) {
-        throw new Error(
-          "SEGMENT_PUBLIC_API_TOKEN is not set in the MCP server env",
-        );
-      }
-      return createSegmentClient({ apiKey: segmentApiKey });
-    },
     defaultBranch,
     forge,
     defaultWriteMode,
