@@ -1,10 +1,21 @@
 {
-  "name": "trackings-plans",
-  "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "name": "@your-org/tracking-plans-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for reading, validating, previewing, and authoring Segment tracking plans stored as YAML in git.",
+  "type": "commonjs",
   "bin": {
     "tracking-plans-mcp": "dist/mcp/bin.js"
+  },
+  "files": [
+    "dist/lib/**/*.js",
+    "dist/mcp/**/*.js",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "restricted"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -15,6 +26,13 @@
     "prestart": "npm run build",
     "prepack": "npm run build"
   },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "segment",
+    "tracking-plan",
+    "protocols"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
