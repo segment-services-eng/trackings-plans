@@ -30,16 +30,12 @@ describe("mcp/server", () => {
     expect(ctx.repoPath).toBe(repo);
   });
 
-  it("resolveContext exposes planIdEnv lookup that returns undefined if unset", () => {
+  it("resolveContext holds no Segment credentials or client", () => {
     const repo = makeRepo();
-    const ctx = resolveContext({ REPO_PATH: repo });
-    expect(ctx.planIdEnv("javascript", "dev")).toBeUndefined();
-  });
-
-  it("resolveContext exposes planIdEnv lookup that returns value from env", () => {
-    const repo = makeRepo();
-    const ctx = resolveContext({ REPO_PATH: repo, DEV_JS: "rs_abc" });
-    expect(ctx.planIdEnv("javascript", "dev")).toBe("rs_abc");
+    const ctx: any = resolveContext({ REPO_PATH: repo, SEGMENT_PUBLIC_API_TOKEN: "sgp_x", DEV_JS: "rs_abc" });
+    expect(ctx.segmentApiKey).toBeUndefined();
+    expect(ctx.segmentClient).toBeUndefined();
+    expect(ctx.planIdEnv).toBeUndefined();
   });
 
   it("createServer registers at least one tool", () => {
@@ -49,6 +45,25 @@ describe("mcp/server", () => {
     // server.listTools() is not on the low-level Server class (SDK v1.30.0).
     // createServer augments the Server instance with listRegisteredToolNames().
     expect(server.listRegisteredToolNames().length).toBeGreaterThan(0);
+  });
+});
+
+describe("mcp/server tools/list", () => {
+  it("lists the M4 workflow tools and not the removed M3 Segment tools", async () => {
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+    const { InMemoryTransport } = await import("@modelcontextprotocol/sdk/inMemory.js");
+    const server = createServer(resolveContext({ REPO_PATH: makeRepo() }));
+    const [a, b] = InMemoryTransport.createLinkedPair();
+    const client = new Client({ name: "t", version: "0" });
+    await Promise.all([server.connect(a), client.connect(b)]);
+    const { tools } = await client.listTools();
+    const names = tools.map((t) => t.name);
+    for (const n of ["deploy_dev", "reset_dev", "check_prod_drift", "get_workflow_run"]) {
+      expect(names).toContain(n);
+      expect(tools.find((t) => t.name === n)!.description).toContain("GitHub Actions");
+    }
+    expect(names).not.toContain("reset_dev_from_prod");
+    expect(names).not.toContain("pull_from_segment");
   });
 });
 

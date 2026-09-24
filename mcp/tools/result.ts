@@ -9,6 +9,7 @@ export interface ToolResultError {
     | "PROD_WRITE_BLOCKED"
     | "GH_CLI"
     | "GITHUB_API"
+    | "WORKFLOW"
     | "UNKNOWN";
   message: string;
   details?: unknown;
