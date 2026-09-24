@@ -10,6 +10,8 @@ export const REDACTED = "[REDACTED]";
 /** Env vars whose values are secrets and must never reach a client or log. */
 export const SECRET_ENV_VARS = [
   "SEGMENT_PUBLIC_API_TOKEN",
+  // Used by the GitHub Actions snapshot scripts (scripts/*-tracking-plan.js).
+  "SEGMENT_API_KEY",
   "GITHUB_TOKEN",
   "GH_TOKEN",
 ] as const;
@@ -23,7 +25,12 @@ const MIN_KNOWN_SECRET_LENGTH = 8;
  */
 const TOKEN_PATTERNS: Array<{ re: RegExp; replace: string }> = [
   // Authorization header values. Keep the scheme so the output stays readable.
-  { re: /\b(Bearer)\s+[A-Za-z0-9._~+/=-]{8,}/g, replace: `$1 ${REDACTED}` },
+  // Token-shaped only (>=12 token chars incl. at least one digit) so prose like
+  // "Bearer instrument type used" survives.
+  {
+    re: /\b(Bearer)\s+(?=[A-Za-z0-9._~+/=-]*\d)[A-Za-z0-9._~+/=-]{12,}/g,
+    replace: `$1 ${REDACTED}`,
+  },
   // GitHub fine-grained PATs.
   { re: /\bgithub_pat_[A-Za-z0-9_]{20,}/g, replace: REDACTED },
   // GitHub classic PAT / OAuth / user-to-server / server-to-server / refresh.

@@ -233,4 +233,25 @@ describe("author tools (branch mode)", () => {
     }).trim();
     expect(branch).toBe("main");
   });
+
+  it("branch mode rollback: staged adds do not follow the user back when the commit fails (pre-commit hook)", async () => {
+    const repo = makeRepo();
+    const hook = join(repo, ".git", "hooks", "pre-commit");
+    writeFileSync(hook, "#!/bin/sh\necho 'hook says no' >&2\nexit 1\n", { mode: 0o755 });
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const res = await addEvent(ctx, {
+      plan: "javascript",
+      key: "Product Viewed",
+      description: "d",
+      properties: {},
+      mode: "branch",
+    });
+    if (res.ok) throw new Error("expected failure");
+    expect(res.error.code).toBe("GIT");
+    const git = (cmd: string) => execSync(`git ${cmd}`, { cwd: repo, encoding: "utf8" }).trim();
+    expect(git("rev-parse --abbrev-ref HEAD")).toBe("main");
+    expect(git("status --porcelain")).toBe("");
+    expect(git("branch --list 'tp/*'")).toBe("");
+    expect(existsSync(join(repo, "tracking-rules", "javascript"))).toBe(false);
+  });
 });

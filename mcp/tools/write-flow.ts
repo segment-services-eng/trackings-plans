@@ -60,8 +60,8 @@ export function branchName(planPath: string, key: string, verb: string, now: num
  *   4. Commit (and push / open PR for pr mode).
  *   5. `finally`: always restore the original branch so the caller's working
  *      tree is left where it started (Fix 1).
- *   6. `catch`: on any error, discard partial on-disk writes and also delete
- *      the tp branch to avoid leaving ghost branches (Fix 2).
+ *   6. `catch`: on any error, hard-reset the tp branch (index + tree) and
+ *      clean new untracked files, then delete the tp branch (Fix 2).
  */
 export async function applyWriteFlow(
   ctx: ServerContext,
@@ -85,12 +85,14 @@ export async function applyWriteFlow(
   const newBranch = branchName(planPath, key, verb, now);
   let branchCreated = false;
   let hadError = false;
+  let changedPaths: string[] = [];
 
   try {
     createBranch(ctx.repoPath, newBranch);
     branchCreated = true;
 
     const { files_changed, extras } = mutator();
+    changedPaths = files_changed;
 
     // Fix 3: zero-affected short-circuit — no commit, no branch left behind
     if (files_changed.length === 0) {
@@ -140,9 +142,11 @@ export async function applyWriteFlow(
     });
   } catch (e) {
     hadError = true;
-    // Fix 2: discard any partial writes the mutator may have flushed to disk
+    // Fix 2: discard partial writes AND anything staged by a failed commit
+    // (e.g. pre-commit hook) while still on the tp branch, so none of it
+    // follows the user back to their original branch.
     if (branchCreated) {
-      try { discardWorkingTreeChanges(ctx.repoPath); } catch { /* best effort */ }
+      try { discardWorkingTreeChanges(ctx.repoPath, changedPaths); } catch { /* best effort */ }
     }
     if (e instanceof GitOpsError) {
       return { ok: false, error: { code: e.code, message: e.message, details: e.details } };

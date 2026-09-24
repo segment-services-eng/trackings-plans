@@ -1,16 +1,26 @@
 import { z } from "zod";
 import { existsSync, mkdirSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import type { ServerContext } from "../context.js";
+import type { ServerContext, WriteMode } from "../context.js";
 import { err, ToolResult } from "./result.js";
+import {
+  BASE_BRANCH,
+  branchBaseRef,
+  getWorkingTreeStatus,
+  GitOpsError,
+  listFilesAtRef,
+  readFileAtRef,
+} from "../../lib/git-ops.js";
 import { applyWriteFlow, type MutatorResult, type WriteOutput } from "./write-flow.js";
 import { PlanNotFoundError, getPlanIdEnvVar, type PlanConfig } from "../../lib/plans-config.js";
 import { SegmentApiError, type Rule } from "../../lib/segment-api.js";
 import {
   formatSnapshotFiles,
   isSnapshotFileName,
+  parseSnapshotSource,
   readSnapshotSources,
   resetRules,
+  type SnapshotSource,
 } from "../../lib/snapshot-sync.js";
 
 type Env = "dev" | "prod";
@@ -115,6 +125,79 @@ function withUnchangedWarning(res: ToolResult<WriteOutput>): ToolResult<WriteOut
   return res;
 }
 
+/**
+ * Refuse a DEV reset whose target could be a PROD plan: the plan's dev_secret
+ * names any plan's prod_secret env var, or the resolved DEV plan id equals any
+ * configured PROD plan id. Must run before any Segment call.
+ */
+function prodWriteBlocked(
+  ctx: ServerContext,
+  plan: PlanConfig,
+  devPlanId?: string,
+): ToolResult<never> | undefined {
+  const bySecret = ctx.plans.find((p) => p.prod_secret === plan.dev_secret);
+  if (bySecret) {
+    return err(
+      "PROD_WRITE_BLOCKED",
+      `Plan "${plan.name}" dev_secret (${plan.dev_secret}) is the prod_secret of plan "${bySecret.name}". Refusing to reset a PROD tracking plan.`,
+      {
+        remediation:
+          "Fix config/tracking-plans-config.json so every dev_secret names a DEV-only env var.",
+      },
+    );
+  }
+  if (devPlanId) {
+    const byId = ctx.plans.find((p) => ctx.planIdEnv(p.path, "prod") === devPlanId);
+    if (byId) {
+      return err(
+        "PROD_WRITE_BLOCKED",
+        `${plan.dev_secret} resolves to the PROD tracking plan id of "${byId.name}" (${byId.prod_secret}). Refusing to reset a PROD tracking plan.`,
+        {
+          remediation: `Set ${plan.dev_secret} to the DEV Segment tracking plan id for "${plan.name}".`,
+        },
+      );
+    }
+  }
+  return undefined;
+}
+
+/**
+ * Prod snapshot sources for the reset. branch/pr: read from the ref the tp
+ * branch is created from (main), matching the RESET_DEV workflow's
+ * `ref: main`. files: read the working tree, warning when not on main.
+ */
+function loadProdSources(
+  ctx: ServerContext,
+  planPath: string,
+  mode: WriteMode,
+): { sources: SnapshotSource[]; from: string; warnings: string[] } {
+  const relDir = `plans/prod/${planPath}`;
+  if (mode !== "files") {
+    const ref = branchBaseRef(ctx.repoPath);
+    const names = listFilesAtRef(ctx.repoPath, ref, relDir).filter(isSnapshotFileName).sort();
+    const sources = names.map((n) =>
+      parseSnapshotSource(n, readFileAtRef(ctx.repoPath, ref, `${relDir}/${n}`)),
+    );
+    return { sources, from: `${ref}:${relDir}`, warnings: [] };
+  }
+  const dir = join(ctx.repoPath, relDir);
+  const sources = existsSync(dir) ? readSnapshotSources(dir) : [];
+  const warnings: string[] = [];
+  let current: string | undefined;
+  try {
+    current = getWorkingTreeStatus(ctx.repoPath).current_branch;
+  } catch {
+    current = undefined; // not a git checkout; nothing to compare
+  }
+  if (current !== undefined && current !== BASE_BRANCH) {
+    warnings.push(
+      `files mode read the prod snapshot from the working tree on branch "${current}", not "${BASE_BRANCH}". ` +
+        `The RESET_DEV workflow resets from ${BASE_BRANCH}; DEV may not match the reviewed prod snapshot.`,
+    );
+  }
+  return { sources, from: relDir, warnings };
+}
+
 export async function resetDevFromProd(
   ctx: ServerContext,
   args: z.infer<typeof resetDevFromProdInput>,
@@ -131,15 +214,34 @@ export async function resetDevFromProd(
   if (pre.blocked) return { ok: false, error: pre.error };
 
   // Hard-coded "dev": this tool has no code path that can target prod.
+  let plan: PlanConfig;
+  try {
+    plan = ctx.resolvePlanOrThrow(args.plan);
+  } catch (e) {
+    if (e instanceof PlanNotFoundError) return err("NOT_FOUND", e.message);
+    throw e;
+  }
+  const secretBlocked = prodWriteBlocked(ctx, plan);
+  if (secretBlocked) return secretBlocked;
   const target = resolveTarget(ctx, args.plan, "dev");
   if ("error" in target) return target.error;
-  const { plan, planId: devPlanId } = target;
+  const devPlanId = target.planId;
+  const idBlocked = prodWriteBlocked(ctx, plan, devPlanId);
+  if (idBlocked) return idBlocked;
 
-  const prodDir = join(ctx.repoPath, "plans", "prod", plan.path);
-  const sources = existsSync(prodDir) ? readSnapshotSources(prodDir) : [];
+  let loaded: ReturnType<typeof loadProdSources>;
+  try {
+    loaded = loadProdSources(ctx, plan.path, mode);
+  } catch (e) {
+    if (e instanceof GitOpsError) {
+      return { ok: false, error: { code: e.code, message: e.message, details: e.details } };
+    }
+    throw e;
+  }
+  const { sources, from, warnings: sourceWarnings } = loaded;
   if (sources.length === 0) {
-    return err("NOT_FOUND", `No prod snapshot found at plans/prod/${plan.path}/current-rules*.json.`, {
-      remediation: `Run pull_from_segment({ plan: "${plan.name}", env: "prod" }) first.`,
+    return err("NOT_FOUND", `No prod snapshot found at ${from}/current-rules*.json.`, {
+      remediation: `Run pull_from_segment({ plan: "${plan.name}", env: "prod" }) and merge it to ${BASE_BRANCH} first.`,
     });
   }
 
@@ -155,18 +257,40 @@ export async function resetDevFromProd(
   }
 
   const extras = { rules_deleted: counts.deleted, rules_patched: counts.patched };
-  const res = await applyWriteFlow(
-    ctx,
-    plan.path,
-    plan.name,
-    "dev from prod",
-    "reset",
-    mode,
-    snapshotMutator(ctx.repoPath, "dev", plan.path, devRules, extras),
+  const res = withUnchangedWarning(
+    await applyWriteFlow(
+      ctx,
+      plan.path,
+      plan.name,
+      "dev from prod",
+      "reset",
+      mode,
+      snapshotMutator(ctx.repoPath, "dev", plan.path, devRules, extras),
+    ),
   );
-  return withUnchangedWarning(res) as ToolResult<
-    WriteOutput & { rules_deleted: number; rules_patched: number }
-  >;
+  if (!res.ok) {
+    // Segment was already reset; only the local snapshot write failed.
+    return {
+      ok: false,
+      error: {
+        ...res.error,
+        details: {
+          ...extras,
+          ...(res.error.details !== undefined ? { cause: res.error.details } : {}),
+        },
+        remediation:
+          `The DEV Segment tracking plan WAS reset (${counts.deleted} rules deleted, ${counts.patched} patched), ` +
+          `but writing the local dev snapshot failed. Fix the git error, then run ` +
+          `pull_from_segment({ plan: "${plan.name}", env: "dev" }) to re-sync plans/dev/${plan.path}/.`,
+      },
+    };
+  }
+  const warnings = [...sourceWarnings, ...(res.warnings ?? [])];
+  return {
+    ok: true,
+    data: res.data as WriteOutput & { rules_deleted: number; rules_patched: number },
+    ...(warnings.length ? { warnings } : {}),
+  };
 }
 
 export async function pullFromSegment(

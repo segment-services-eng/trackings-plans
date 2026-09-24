@@ -53,6 +53,23 @@ export function assertCleanTree(repoPath: string): void {
   }
 }
 
+/** Local branch every tp/… branch is based on. */
+export const BASE_BRANCH = "main";
+
+/**
+ * The ref `createBranch` bases new branches on: local `main` when it exists,
+ * otherwise `HEAD`. Readers that must see the same content the tp branch
+ * starts from (e.g. reset_dev_from_prod) should read from this ref.
+ */
+export function branchBaseRef(repoPath: string): string {
+  try {
+    git(repoPath, ["rev-parse", "--verify", "--quiet", `refs/heads/${BASE_BRANCH}`]);
+    return BASE_BRANCH;
+  } catch {
+    return "HEAD";
+  }
+}
+
 /**
  * Create a new branch based on the local `main` branch.
  * If an origin remote exists, attempts a best-effort `git fetch origin main` first
@@ -77,11 +94,7 @@ export function createBranch(repoPath: string, branchName: string): void {
   }
 
   // Base on local main (potentially just fast-forwarded), fall back to HEAD
-  try {
-    git(repoPath, ["checkout", "-b", branchName, "main"]);
-  } catch {
-    git(repoPath, ["checkout", "-b", branchName]);
-  }
+  git(repoPath, ["checkout", "-b", branchName, branchBaseRef(repoPath)]);
 }
 
 /** Switch to an existing branch. Throws GitOpsError on failure. */
@@ -94,9 +107,30 @@ export function deleteBranch(repoPath: string, branchName: string): void {
   git(repoPath, ["branch", "-D", branchName]);
 }
 
-/** Discard all unstaged changes in the working tree (git checkout -- .). */
-export function discardWorkingTreeChanges(repoPath: string): void {
-  git(repoPath, ["checkout", "--", "."]);
+/**
+ * Fully roll back the working tree AND index to HEAD: `git reset --hard HEAD`
+ * drops staged adds/deletes and restores tracked files; `git clean -fd` on
+ * `paths` then removes files the mutator created that were never staged.
+ * Only call this on a throwaway tp/… branch.
+ */
+export function discardWorkingTreeChanges(repoPath: string, paths: string[] = []): void {
+  git(repoPath, ["reset", "--hard", "HEAD"]);
+  if (paths.length > 0) git(repoPath, ["clean", "-fd", "--", ...paths]);
+}
+
+/** Names (not paths) of the blobs directly under `dir` at `ref`; [] if absent. */
+export function listFilesAtRef(repoPath: string, ref: string, dir: string): string[] {
+  const prefix = dir.replace(/\/+$/, "") + "/";
+  const out = git(repoPath, ["ls-tree", "--name-only", ref, "--", prefix]);
+  return out
+    .split("\n")
+    .filter(Boolean)
+    .map((p) => (p.startsWith(prefix) ? p.slice(prefix.length) : p));
+}
+
+/** Contents of `path` at `ref` (`git show <ref>:<path>`). */
+export function readFileAtRef(repoPath: string, ref: string, path: string): string {
+  return git(repoPath, ["show", `${ref}:${path}`]);
 }
 
 export function commitPaths(

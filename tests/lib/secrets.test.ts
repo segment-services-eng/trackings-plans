@@ -27,6 +27,23 @@ describe("lib/secrets redactSecrets", () => {
     );
   });
 
+  it("does not redact prose that merely follows the word Bearer", () => {
+    for (const prose of [
+      "Bearer instrument type used",
+      "The Bearer authentication-scheme-explanation is documented here",
+      "bond: Bearer certificate_of_deposit_classification",
+    ]) {
+      expect(redactSecrets(prose, [])).toBe(prose);
+    }
+  });
+
+  it("still redacts long token-shaped Bearer values", () => {
+    const tok = "eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxMjM0In0.sig-part_42";
+    expect(redactSecrets(`Authorization: Bearer ${tok}`, [])).toBe(
+      `Authorization: Bearer ${REDACTED}`,
+    );
+  });
+
   it("redacts GitHub token prefixes", () => {
     expect(redactSecrets(`x ${GHP} y`, [])).toBe(`x ${REDACTED} y`);
     expect(redactSecrets("gho_abcdefghijklmnopqrstuvwxyz0123", [])).toBe(REDACTED);
@@ -78,6 +95,15 @@ describe("lib/secrets redactSecrets", () => {
 });
 
 describe("lib/secrets knownSecretsFromEnv", () => {
+  it("treats SEGMENT_API_KEY (Actions scripts) as a secret", () => {
+    expect(knownSecretsFromEnv({ SEGMENT_API_KEY: "seg-actions-key-789" })).toEqual([
+      "seg-actions-key-789",
+    ]);
+    expect(redactSecrets("key seg-actions-key-789 leaked", knownSecretsFromEnv({
+      SEGMENT_API_KEY: "seg-actions-key-789",
+    }))).toBe(`key ${REDACTED} leaked`);
+  });
+
   it("returns set token values from env", () => {
     expect(
       knownSecretsFromEnv({
@@ -127,6 +153,16 @@ describe("lib/secrets lintSecrets", () => {
     expect(w).toHaveLength(1);
     expect(w[0]).toMatch(/gitignore/i);
     expect(w[0]).not.toContain(GHP);
+  });
+
+  it("warns when a tracked .env sets SEGMENT_API_KEY", () => {
+    const w = lintSecrets({
+      envFiles: [{ path: ".env", contents: "SEGMENT_API_KEY=abcdef123456\n", gitStatus: "tracked" }],
+      knownSecrets: [],
+    });
+    expect(w).toHaveLength(1);
+    expect(w[0]).toContain("SEGMENT_API_KEY");
+    expect(w[0]).not.toContain("abcdef123456");
   });
 
   it("does not warn for .env files where the token key is empty or commented out", () => {

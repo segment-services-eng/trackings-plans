@@ -66,17 +66,18 @@ export function formatSnapshotFiles(
   return files;
 }
 
+/** Parse one current-rules*.json body into a patch source. */
+export function parseSnapshotSource(label: string, content: string): SnapshotSource {
+  const parsed = JSON.parse(content) as { rules?: Rule[] };
+  return { label, rules: Array.isArray(parsed.rules) ? parsed.rules : [] };
+}
+
 /** Read every current-rules*.json in `dir` (sorted) as patch sources. */
 export function readSnapshotSources(dir: string): SnapshotSource[] {
   return readdirSync(dir)
     .filter(isSnapshotFileName)
     .sort()
-    .map((f) => {
-      const parsed = JSON.parse(readFileSync(join(dir, f), "utf-8")) as {
-        rules?: Rule[];
-      };
-      return { label: f, rules: Array.isArray(parsed.rules) ? parsed.rules : [] };
-    });
+    .map((f) => parseSnapshotSource(f, readFileSync(join(dir, f), "utf-8")));
 }
 
 /**
