@@ -1,0 +1,117 @@
+import { z } from "zod";
+import { existsSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import type { ServerContext } from "../context.js";
+import { err, ok, ToolResult } from "./result.js";
+import { renderMarkdown } from "../../lib/render-markdown.js";
+import { yamlToRule, type YamlRule } from "../../lib/yaml-transform.js";
+import type { Rule } from "../../lib/segment-api.js";
+import { readPlanSnapshot } from "../../lib/plan-snapshot.js";
+import { PlanNotFoundError } from "../../lib/plans-config.js";
+import { readYamlRules } from "./validate.js";
+
+export const previewMarkdownInput = z
+  .object({
+    plan: z.string(),
+    source: z.enum(["yaml", "snapshot"]).optional(),
+    env: z.enum(["dev", "prod"]).optional(),
+  })
+  .strict();
+
+export const previewSegmentPayloadInput = z
+  .object({ plan: z.string(), key: z.string() })
+  .strict();
+
+export async function previewMarkdown(
+  ctx: ServerContext,
+  args: z.infer<typeof previewMarkdownInput>,
+): Promise<
+  ToolResult<{
+    source: "yaml" | "snapshot";
+    markdown: string;
+    diff_against_committed: string | null;
+  }>
+> {
+  let plan;
+  try {
+    plan = ctx.resolvePlanOrThrow(args.plan);
+  } catch (e) {
+    if (e instanceof PlanNotFoundError) return err("NOT_FOUND", e.message);
+    throw e;
+  }
+  // Derive source from env when only env is given (env:"dev" -> yaml, env:"prod" -> snapshot).
+  // Explicit `source` still wins for backward compatibility.
+  let source: "yaml" | "snapshot";
+  if (args.source) {
+    source = args.source;
+  } else if (args.env === "prod") {
+    source = "snapshot";
+  } else {
+    source = "yaml";
+  }
+  let rules: Rule[];
+  if (source === "yaml") {
+    rules = readYamlRules(ctx.repoPath, plan.path).map(yamlToRule);
+  } else {
+    if (!args.env) {
+      return err(
+        "VALIDATION",
+        "env is required when source is 'snapshot'",
+      );
+    }
+    rules = readPlanSnapshot(ctx.repoPath, args.env, plan.path);
+  }
+  const markdown = renderMarkdown({ title: plan.name, rules });
+
+  const committedMdPath = join(ctx.repoPath, "docs", `${plan.name}.md`);
+  let diff: string | null = null;
+  const warnings: string[] = [];
+  if (existsSync(committedMdPath)) {
+    try {
+      execFileSync(
+        "git",
+        ["diff", "--no-index", "--no-color", committedMdPath, "-"],
+        { cwd: ctx.repoPath, input: markdown, encoding: "utf8" },
+      );
+      diff = ""; // exit 0 — files are identical
+    } catch (e: any) {
+      const status: number | null = typeof e.status === "number" ? e.status : null;
+      if (status === 1) {
+        // exit 1 from git diff --no-index means files differ — stdout has the diff
+        diff = typeof e.stdout === "string" ? e.stdout : String(e.stdout ?? "");
+      } else {
+        // exit 128+ or unknown — a real git error
+        const stderr = typeof e.stderr === "string" ? e.stderr.trim() : String(e.stderr ?? "");
+        diff = null;
+        warnings.push(`Could not compute diff: ${stderr || e.message}`);
+      }
+    }
+  }
+  return ok(
+    { source, markdown, diff_against_committed: diff },
+    warnings.length ? warnings : undefined,
+  );
+}
+
+export async function previewSegmentPayload(
+  ctx: ServerContext,
+  args: z.infer<typeof previewSegmentPayloadInput>,
+): Promise<ToolResult<{ payload: Rule }>> {
+  let plan;
+  try {
+    plan = ctx.resolvePlanOrThrow(args.plan);
+  } catch (e) {
+    if (e instanceof PlanNotFoundError) return err("NOT_FOUND", e.message);
+    throw e;
+  }
+  const yamlRules = readYamlRules(ctx.repoPath, plan.path);
+  const match = yamlRules.find((r: YamlRule) => r.key === args.key);
+  if (!match) {
+    return err(
+      "NOT_FOUND",
+      `Event "${args.key}" has no yaml file in tracking-rules/${plan.path}/`,
+    );
+  }
+  return ok({ payload: yamlToRule(match) });
+}

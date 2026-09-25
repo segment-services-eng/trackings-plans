@@ -1,0 +1,176 @@
+name: Prod Drift
+
+run-name: "Prod Drift [${{ inputs.request_id || github.run_id }}]"
+
+on:
+  schedule:
+    - cron: '17 9 * * *'
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Opaque id from the MCP; embedded in run-name."
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest-large
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build lib/
+        run: npm run build
+
+      - name: Initialize result.json
+        run: |
+          echo '{"ok":true,"workflow":"prod-drift.yml","plans":[],"errors":[]}' > "$RUNNER_TEMP/result.json"
+
+      - name: Build plans matrix
+        id: plans
+        run: |
+          MATRIX=$(jq -c '[.plans[] | {name, path, secret: .prod_secret}]' config/tracking-plans-config.json)
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+      - name: Fetch prod and compute drift
+        id: drift
+        env:
+          MATRIX: ${{ steps.plans.outputs.matrix }}
+          SEGMENT_API_KEY: ${{ secrets.SEGMENT_PUBLIC_API_TOKEN }}
+          PROD_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT: ${{ secrets.PROD_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT }}
+          PROD_SEGMENT_TRACKING_PLAN_ID_SERVER: ${{ secrets.PROD_SEGMENT_TRACKING_PLAN_ID_SERVER }}
+        run: |
+          set +e
+          overall_ok=true
+          any_drift=false
+          errors=()
+          entries="[]"
+          count=$(echo "$MATRIX" | jq 'length')
+          for i in $(seq 0 $((count - 1))); do
+            name=$(echo "$MATRIX" | jq -r ".[$i].name")
+            path=$(echo "$MATRIX" | jq -r ".[$i].path")
+            secret=$(echo "$MATRIX" | jq -r ".[$i].secret")
+            plan_id="${!secret}"
+            fresh_dir="$RUNNER_TEMP/fresh/$path"
+            mkdir -p "$fresh_dir"
+            echo "::group::Fetch prod for $name ($path)"
+            output=$(SEGMENT_TRACKING_PLAN_ID="$plan_id" PLAN_DIR="$fresh_dir" node scripts/save-tracking-plan.js 2>&1)
+            status=$?
+            echo "$output"
+            echo "::endgroup::"
+            if [ $status -ne 0 ]; then
+              overall_ok=false
+              errors+=("$name: fetch failed: $(echo "$output" | tail -n 1)")
+              entries=$(echo "$entries" | jq --arg plan "$path" '. + [{plan:$plan,env:"prod",drift:false}]')
+              continue
+            fi
+            snapshot="plans/prod/$path/current-rules.json"
+            fresh="$fresh_dir/current-rules.json"
+            drift="false"
+            if [ ! -f "$snapshot" ]; then
+              drift="true"
+            elif ! diff -q <(jq -S . "$snapshot") <(jq -S . "$fresh") > /dev/null 2>&1; then
+              drift="true"
+            fi
+            if [ "$drift" = "true" ]; then
+              any_drift=true
+              mkdir -p "plans/prod/$path"
+              cp "$fresh" "$snapshot"
+            fi
+            entries=$(echo "$entries" | jq --arg plan "$path" --argjson d "$drift" '. + [{plan:$plan,env:"prod",drift:$d}]')
+          done
+          jq --argjson ok "$overall_ok" --argjson plans "$entries" \
+            '.ok = $ok | .plans = $plans' \
+            "$RUNNER_TEMP/result.json" > "$RUNNER_TEMP/result.next.json"
+          mv "$RUNNER_TEMP/result.next.json" "$RUNNER_TEMP/result.json"
+          if [ ${#errors[@]} -gt 0 ]; then
+            printf '%s\n' "${errors[@]}" > "$RUNNER_TEMP/errors.txt"
+            jq --rawfile e "$RUNNER_TEMP/errors.txt" '.errors = ($e | split("\n") | map(select(length > 0)))' \
+              "$RUNNER_TEMP/result.json" > "$RUNNER_TEMP/result.next.json"
+            mv "$RUNNER_TEMP/result.next.json" "$RUNNER_TEMP/result.json"
+          fi
+          echo "any_drift=$any_drift" >> "$GITHUB_OUTPUT"
+          cat "$RUNNER_TEMP/result.json"
+          if [ "$overall_ok" != "true" ]; then
+            exit 1
+          fi
+
+      - name: Open or update drift PR
+        if: success() && steps.drift.outputs.any_drift == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          set -e
+          BRANCH="tp/drift/prod"
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          # Reset the drift branch to main and lay drift snapshot on top.
+          git fetch origin main
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null; then
+            git fetch origin "$BRANCH":"$BRANCH" || true
+          fi
+          git checkout -B "$BRANCH" origin/main
+          git add plans/prod
+          if git diff --cached --quiet; then
+            echo "No changes staged after reset — nothing to push."
+            exit 0
+          fi
+          git commit -m "chore(drift): prod tracking plan drift snapshot"
+          git push --force-with-lease origin "$BRANCH"
+          BODY_FILE="$RUNNER_TEMP/pr-body.md"
+          {
+            echo "Automated drift detection: Segment prod tracking plans differ from the committed snapshot."
+            echo ""
+            echo "Run: $SERVER_URL/$REPO/actions/runs/$RUN_ID"
+            echo ""
+            echo "Review the diff and either merge to accept the drift into main, or reconcile via \`tracking-rules/\` YAML."
+          } > "$BODY_FILE"
+          EXISTING=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            gh pr edit "$EXISTING" --body-file "$BODY_FILE" --title "Prod tracking plan drift"
+          else
+            gh pr create --head "$BRANCH" --base main --title "Prod tracking plan drift" --body-file "$BODY_FILE"
+          fi
+
+      - name: Close stale drift branch when no drift
+        if: success() && steps.drift.outputs.any_drift != 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          BRANCH="tp/drift/prod"
+          if ! git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            echo "No drift branch on origin — nothing to clean up."
+            exit 0
+          fi
+          OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length' 2>/dev/null || echo 0)
+          if [ "$OPEN_PRS" != "0" ]; then
+            echo "Open PR(s) on $BRANCH — leaving branch in place so PR stays open."
+            exit 0
+          fi
+          git push origin --delete "$BRANCH" || true
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: result
+          path: ${{ runner.temp }}/result.json
+          if-no-files-found: warn

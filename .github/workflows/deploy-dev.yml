@@ -1,0 +1,209 @@
+name: Deploy Dev
+
+run-name: "Deploy Dev [${{ inputs.request_id || github.event.pull_request.number }}]"
+
+on:
+  pull_request:
+    types: [labeled, synchronize]
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Opaque id from the MCP; embedded in run-name."
+        required: true
+        type: string
+      plan:
+        description: "Plan path (e.g. javascript) or 'all'."
+        required: true
+        type: string
+      ref:
+        description: "Branch or SHA whose YAML to deploy."
+        required: true
+        type: string
+
+concurrency:
+  group: segment-dev-${{ inputs.plan || github.event.pull_request.number }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  deploy:
+    # Only run on PR events when the deploy-dev label is present.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'pull_request' &&
+       contains(github.event.pull_request.labels.*.name, 'deploy-dev'))
+    runs-on: ubuntu-latest-large
+    steps:
+      - name: Determine checkout ref
+        id: ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_PLAN: ${{ inputs.plan }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "sha=$INPUT_REF" >> "$GITHUB_OUTPUT"
+            echo "plan=$INPUT_PLAN" >> "$GITHUB_OUTPUT"
+          else
+            echo "sha=$PR_HEAD_SHA" >> "$GITHUB_OUTPUT"
+            echo "plan=all" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          ref: ${{ steps.ref.outputs.sha }}
+          fetch-depth: 10
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build lib/
+        run: npm run build
+
+      - name: Fetch base ref for diff
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: |
+          # update-tracking-plan.js diffs against origin/<base>..HEAD; ensure
+          # the base ref is present in the local repo before the deploy step.
+          git fetch --no-tags --depth=50 origin "$BASE_REF":"refs/remotes/origin/$BASE_REF"
+
+      - name: Initialize result.json
+        run: |
+          echo '{"ok":true,"workflow":"deploy-dev.yml","plans":[],"errors":[]}' > "$RUNNER_TEMP/result.json"
+
+      - name: Build plans matrix
+        id: plans
+        env:
+          TARGET_PLAN: ${{ steps.ref.outputs.plan }}
+        run: |
+          if [ "$TARGET_PLAN" = "all" ]; then
+            MATRIX=$(jq -c '[.plans[] | {name, path, secret: .dev_secret}]' config/tracking-plans-config.json)
+          else
+            MATRIX=$(jq -c --arg p "$TARGET_PLAN" '[.plans[] | select(.path == $p) | {name, path, secret: .dev_secret}]' config/tracking-plans-config.json)
+          fi
+          if [ "$(echo "$MATRIX" | jq 'length')" = "0" ]; then
+            echo "No plans matched TARGET_PLAN=$TARGET_PLAN"
+            exit 1
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+
+      - name: Patch Dev tracking plans
+        env:
+          MATRIX: ${{ steps.plans.outputs.matrix }}
+          SEGMENT_API_KEY: ${{ secrets.SEGMENT_PUBLIC_API_TOKEN }}
+          DEV_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT: ${{ secrets.DEV_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT }}
+          DEV_SEGMENT_TRACKING_PLAN_ID_SERVER: ${{ secrets.DEV_SEGMENT_TRACKING_PLAN_ID_SERVER }}
+          BASE_REF: origin/${{ github.event.pull_request.base.ref || 'main' }}
+        run: |
+          set +e
+          overall_ok=true
+          errors=()
+          entries="[]"
+          count=$(echo "$MATRIX" | jq 'length')
+          for i in $(seq 0 $((count - 1))); do
+            name=$(echo "$MATRIX" | jq -r ".[$i].name")
+            path=$(echo "$MATRIX" | jq -r ".[$i].path")
+            secret=$(echo "$MATRIX" | jq -r ".[$i].secret")
+            plan_id="${!secret}"
+            echo "::group::Deploy $name ($path) to Dev"
+            output=$(SEGMENT_TRACKING_PLAN_ID="$plan_id" PLAN_DIR="tracking-rules/$path" node scripts/update-tracking-plan.js 2>&1)
+            status=$?
+            echo "$output"
+            echo "::endgroup::"
+            if [ $status -ne 0 ]; then
+              overall_ok=false
+              errors+=("$name: $(echo "$output" | tail -n 1)")
+              entries=$(echo "$entries" | jq --arg plan "$path" '. + [{plan:$plan,env:"dev",rules_patched:0}]')
+              continue
+            fi
+            patched=$(echo "$output" | grep -oE 'Updated [0-9]+ rules' | grep -oE '[0-9]+' | head -n1)
+            patched=${patched:-0}
+            entries=$(echo "$entries" | jq --arg plan "$path" --argjson n "$patched" '. + [{plan:$plan,env:"dev",rules_patched:$n}]')
+          done
+          jq --argjson ok "$overall_ok" --argjson plans "$entries" \
+            '.ok = $ok | .plans = $plans' \
+            "$RUNNER_TEMP/result.json" > "$RUNNER_TEMP/result.next.json"
+          mv "$RUNNER_TEMP/result.next.json" "$RUNNER_TEMP/result.json"
+          if [ ${#errors[@]} -gt 0 ]; then
+            printf '%s\n' "${errors[@]}" > "$RUNNER_TEMP/errors.txt"
+            jq --rawfile e "$RUNNER_TEMP/errors.txt" '.errors = ($e | split("\n") | map(select(length > 0)))' \
+              "$RUNNER_TEMP/result.json" > "$RUNNER_TEMP/result.next.json"
+            mv "$RUNNER_TEMP/result.next.json" "$RUNNER_TEMP/result.json"
+          fi
+          cat "$RUNNER_TEMP/result.json"
+          if [ "$overall_ok" != "true" ]; then
+            exit 1
+          fi
+
+      - name: Sticky PR comment
+        if: always() && github.event_name == 'pull_request'
+        uses: actions/github-script@f28e40c7f34bde8b3046d885e986cb6290c5673b # v7
+        env:
+          RESULT_PATH: ${{ runner.temp }}/result.json
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const marker = '<!-- mcp-deploy-dev -->';
+            let result;
+            try {
+              result = JSON.parse(fs.readFileSync(process.env.RESULT_PATH, 'utf8'));
+            } catch (e) {
+              result = { ok: false, workflow: 'deploy-dev.yml', plans: [], errors: [String(e)] };
+            }
+            const status = result.ok ? 'success' : 'failure';
+            const lines = [
+              marker,
+              `## MCP deploy-dev: ${status}`,
+              '',
+              `- Run: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`,
+              '',
+              '| Plan | Env | Rules patched |',
+              '| --- | --- | --- |',
+              ...(result.plans || []).map(p => `| ${p.plan} | ${p.env} | ${p.rules_patched ?? 0} |`),
+            ];
+            if (result.errors && result.errors.length) {
+              lines.push('', '### Errors', ...result.errors.map(e => `- ${e}`));
+            }
+            const body = lines.join('\n');
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.payload.pull_request.number,
+              per_page: 100,
+            });
+            const existing = comments.find(c => c.body && c.body.includes(marker));
+            if (existing) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: existing.id,
+                body,
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.payload.pull_request.number,
+                body,
+              });
+            }
+
+      - name: Upload result artifact
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: result
+          path: ${{ runner.temp }}/result.json
+          if-no-files-found: warn

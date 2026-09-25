@@ -1,0 +1,123 @@
+name: MCP CI
+
+on:
+  pull_request:
+    paths:
+      - 'lib/**'
+      - 'mcp/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vitest.config.ts'
+      - '.github/workflows/mcp-ci.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'lib/**'
+      - 'mcp/**'
+      - 'scripts/**'
+      - 'tests/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - 'vitest.config.ts'
+      - '.github/workflows/mcp-ci.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mcp-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Typecheck, test, build, smoke
+    runs-on: ubuntu-latest-large
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          # list_recent_changes / git-ops tests read history.
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Configure git identity for tests
+        run: |
+          git config --global user.name "mcp-ci"
+          git config --global user.email "mcp-ci@users.noreply.github.com"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit + contract tests
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Verify Actions scripts load against the build
+        # scripts/*-tracking-plan.js require ../dist/lib/*; make sure they still
+        # resolve and fail fast (exit 1, "Missing ...") with an empty env,
+        # before any network call.
+        run: |
+          set -euo pipefail
+          node -e "require('./dist/lib/snapshot-sync.js')"
+          for script in scripts/save-tracking-plan.js scripts/reset-tracking-plan.js; do
+            code=0
+            out=$(env -i PATH="$PATH" node "$script" 2>&1) || code=$?
+            if [ "$code" -ne 1 ]; then
+              echo "$script: expected exit 1 with empty env, got $code"; echo "$out"; exit 1
+            fi
+            if ! printf '%s' "$out" | grep -q "Missing"; then
+              echo "$script: expected a 'Missing' message, got:"; echo "$out"; exit 1
+            fi
+            echo "$script: OK ($out)"
+          done
+
+      - name: Verify bin shebang
+        run: |
+          head -n 1 dist/mcp/bin.js | grep -qx '#!/usr/bin/env node' \
+            || { echo "dist/mcp/bin.js is missing its shebang"; exit 1; }
+
+      - name: Pack (dry run)
+        run: npm pack --dry-run --ignore-scripts
+
+      - name: Smoke test built server over stdio
+        env:
+          REPO_PATH: ${{ github.workspace }}
+        run: |
+          set -euo pipefail
+          printf '%s\n' \
+            '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2024-11-05","capabilities":{},"clientInfo":{"name":"mcp-ci","version":"0.0.0"}}}' \
+            '{"jsonrpc":"2.0","method":"notifications/initialized"}' \
+            '{"jsonrpc":"2.0","id":2,"method":"tools/list"}' \
+            '{"jsonrpc":"2.0","id":3,"method":"tools/call","params":{"name":"list_plans","arguments":{}}}' \
+            | timeout 30 node dist/mcp/bin.js > mcp-smoke.out
+          node -e '
+            const lines = require("fs").readFileSync("mcp-smoke.out", "utf8").trim().split("\n").filter(Boolean);
+            const byId = Object.fromEntries(lines.map((l) => JSON.parse(l)).map((m) => [m.id, m]));
+            const fail = (msg) => { console.error("SMOKE FAIL: " + msg); console.error(lines.join("\n")); process.exit(1); };
+            if (!byId[1] || !byId[1].result || byId[1].result.serverInfo.name !== "tracking-plans-mcp") fail("initialize");
+            const tools = (byId[2] && byId[2].result && byId[2].result.tools) || [];
+            if (tools.length === 0) fail("tools/list returned no tools");
+            const names = tools.map((t) => t.name);
+            for (const required of ["list_plans", "list_events", "validate_plan", "add_event"]) {
+              if (!names.includes(required)) fail("missing tool " + required);
+            }
+            if (!byId[3] || !byId[3].result || byId[3].result.isError) fail("tools/call list_plans");
+            console.log("tools/list returned " + names.length + " tools: " + names.join(", "));
+          '

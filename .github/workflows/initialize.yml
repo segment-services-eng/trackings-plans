@@ -1,28 +1,36 @@
 name: Initialize Tracking Plans
 
+run-name: "Initialize Tracking Plans [${{ inputs.request_id }}]"
+
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Opaque id from the caller; embedded in run-name."
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   initialize-tracking-plans:
-    if: contains(github.event.release.name, 'initialize')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
 
     outputs:
       matrix: ${{ steps.parse_json.outputs.matrix }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '16'
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
       # Load tracking plans from JSON file
       - name: Load Tracking Plans Configuration
@@ -33,22 +41,25 @@ jobs:
 
   matrix-job:
     needs: initialize-tracking-plans
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     strategy:
       matrix:
         tracking_plan: ${{ fromJson(needs.initialize-tracking-plans.outputs.matrix) }}
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@a37ce9120846195fa4ece8f58b268e6043cb2f26 # v3
 
       - name: Set up Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '16'
+          node-version: '20'
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
+      - name: Build lib/
+        run: npm run build
 
       # **Step 1: Fetch DEV Tracking Plan**
       - name: Fetch DEV Tracking Plan
@@ -56,8 +67,9 @@ jobs:
           SEGMENT_API_KEY: ${{ secrets.SEGMENT_PUBLIC_API_TOKEN }}
           SEGMENT_TRACKING_PLAN_ID: ${{ secrets[matrix.tracking_plan.dev_secret] }}
           PLAN_DIR: plans/dev/${{ matrix.tracking_plan.path }}
+          PLAN_NAME: ${{ matrix.tracking_plan.name }}
         run: |
-          echo "Fetching DEV tracking plan for ${{ matrix.tracking_plan.name }}"
+          echo "Fetching DEV tracking plan for $PLAN_NAME"
           node scripts/save-tracking-plan.js
 
       # **Step 2: Fetch PROD Tracking Plan**
@@ -66,24 +78,34 @@ jobs:
           SEGMENT_API_KEY: ${{ secrets.SEGMENT_PUBLIC_API_TOKEN }}
           SEGMENT_TRACKING_PLAN_ID: ${{ secrets[matrix.tracking_plan.prod_secret] }}
           PLAN_DIR: plans/prod/${{ matrix.tracking_plan.path }}
+          PLAN_NAME: ${{ matrix.tracking_plan.name }}
         run: |
-          echo "Fetching PROD tracking plan for ${{ matrix.tracking_plan.name }}"
+          echo "Fetching PROD tracking plan for $PLAN_NAME"
           node scripts/save-tracking-plan.js
 
       # **Step 3: Generate YAML from PROD JSON**
       - name: Generate YAML from PROD JSON
+        env:
+          PLAN_NAME: ${{ matrix.tracking_plan.name }}
+          PLAN_PATH: ${{ matrix.tracking_plan.path }}
         run: |
-          echo "Generating YAML for ${{ matrix.tracking_plan.name }}"
-          node scripts/generate-yaml-rules.js "plans/prod/${{ matrix.tracking_plan.path }}" "tracking-rules/${{ matrix.tracking_plan.path }}"
+          echo "Generating YAML for $PLAN_NAME"
+          node scripts/generate-yaml-rules.js "plans/prod/$PLAN_PATH" "tracking-rules/$PLAN_PATH"
 
       # **Step 4: Generate Markdown for PROD**
       - name: Generate Markdown from YAML
+        env:
+          PLAN_NAME: ${{ matrix.tracking_plan.name }}
+          PLAN_PATH: ${{ matrix.tracking_plan.path }}
         run: |
-          echo "Generating markdown for ${{ matrix.tracking_plan.name }}"
-          node scripts/render-tp.js "${{ matrix.tracking_plan.name }} Tracking Plan" "plans/prod/${{ matrix.tracking_plan.path }}/current-rules.json" "docs/${{ matrix.tracking_plan.path }}_tracking_plan.md"
+          echo "Generating markdown for $PLAN_NAME"
+          node scripts/render-tp.js "$PLAN_NAME Tracking Plan" "plans/prod/$PLAN_PATH/current-rules.json" "docs/${PLAN_PATH}_tracking_plan.md"
 
       # **Step 5: Commit and Push Changes**
       - name: Commit and Push Updates
+        env:
+          PLAN_NAME: ${{ matrix.tracking_plan.name }}
+          PLAN_PATH: ${{ matrix.tracking_plan.path }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
@@ -92,12 +114,12 @@ jobs:
           git fetch origin main
           git checkout main
 
-          git add plans/dev/${{ matrix.tracking_plan.path }}/current-rules.json \
-                  plans/prod/${{ matrix.tracking_plan.path }}/current-rules.json \
-                  tracking-rules/${{ matrix.tracking_plan.path }}/*.yml \
-                  docs/${{ matrix.tracking_plan.path }}_tracking_plan.md
-          
-          git commit -m "Initialized tracking plans for ${{ matrix.tracking_plan.name }} [skip ci]" || echo "No changes to commit"
+          git add "plans/dev/$PLAN_PATH/current-rules.json" \
+                  "plans/prod/$PLAN_PATH/current-rules.json" \
+                  "tracking-rules/$PLAN_PATH"/*.yml \
+                  "docs/${PLAN_PATH}_tracking_plan.md"
+
+          git commit -m "Initialized tracking plans for $PLAN_NAME [skip ci]" || echo "No changes to commit"
 
           # Fetch latest changes & merge automatically
           git pull --rebase origin main || git pull --autostash origin main

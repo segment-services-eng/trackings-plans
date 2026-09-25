@@ -1,29 +1,40 @@
-name: Generate Markdown on Release
+name: Generate Markdown
+
+run-name: "Generate Markdown [${{ inputs.request_id }}]"
 
 on:
-  release:
-    types: [published]
+  workflow_dispatch:
+    inputs:
+      request_id:
+        description: "Opaque id from the caller; embedded in run-name."
+        required: false
+        type: string
+
+permissions:
+  contents: write
 
 jobs:
   generate-markdown:
-    if: contains(github.event.release.name, 'MARKDOWN')
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
     - name: Set up Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
       with:
-        node-version: '14'
+        node-version: '20'
 
     - name: Install dependencies
-      run: npm install
+      run: npm ci
+
+    - name: Build lib/
+      run: npm run build
     - name: Configure Git identity
       run: |
-        git config --global user.email "you@example.com"
-        git config --global user.name "Your Name"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git config --global user.name "github-actions[bot]"
 
     - name: Fetch main branch
       run: git fetch origin main:main
@@ -39,5 +50,5 @@ jobs:
     - name: Commit and push changes
       run: |
         git add docs/javascript_tracking_plan.md docs/server_tracking_plan.md
-        git commit -m "Test markdown generation" || echo "No changes to commit"
+        git commit -m "Regenerate tracking plan markdown [skip ci]" || echo "No changes to commit"
         git push origin main

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.env
+.env.local
+plans/dev/
+tasks/
+.claude/
+docs/superpowers/
