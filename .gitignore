@@ -7,3 +7,4 @@ plans/dev/
 tasks/
 .claude/
 docs/superpowers/
+.DS_Store
