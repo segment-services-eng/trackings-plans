@@ -14,6 +14,10 @@ on:
         required: true
         type: string
 
+concurrency:
+  group: segment-dev-${{ inputs.plan }}
+  cancel-in-progress: false
+
 permissions:
   contents: read
 
@@ -90,8 +94,15 @@ jobs:
             if [ $status -ne 0 ]; then
               overall_ok=false
               errors+=("$name: reset failed: $(echo "$output" | tail -n 1)")
+              entries=$(echo "$entries" | jq --arg plan "$path" '. + [{plan:$plan,env:"dev",rules_patched:0,rules_deleted:0}]')
+              continue
             fi
-            entries=$(echo "$entries" | jq --arg plan "$path" '. + [{plan:$plan,env:"dev",rules_patched:0,rules_deleted:0}]')
+            summary=$(echo "$output" | grep -oE 'patched [0-9]+ rules, deleted [0-9]+ rules' | tail -n 1)
+            patched=$(echo "$summary" | grep -oE 'patched [0-9]+' | grep -oE '[0-9]+')
+            deleted=$(echo "$summary" | grep -oE 'deleted [0-9]+' | grep -oE '[0-9]+')
+            patched=${patched:-0}
+            deleted=${deleted:-0}
+            entries=$(echo "$entries" | jq --arg plan "$path" --argjson p "$patched" --argjson d "$deleted" '. + [{plan:$plan,env:"dev",rules_patched:$p,rules_deleted:$d}]')
           done
           jq --argjson ok "$overall_ok" --argjson plans "$entries" \
             '.ok = $ok | .plans = $plans' \
