@@ -25,7 +25,7 @@ concurrency:
 
 jobs:
   test:
-    name: Typecheck, test, build, smoke
+    name: MCP CI
     runs-on: ubuntu-latest-large
     timeout-minutes: 15
 
