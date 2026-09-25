@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { execSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { resolveContext } from "../../mcp/context.js";
 import { addEvent } from "../../mcp/tools/author.js";
 import { bulkRenameProperty, bulkAddProperty } from "../../mcp/tools/bulk.js";

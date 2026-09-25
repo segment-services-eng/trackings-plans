@@ -3,7 +3,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync } from 
 import { execSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import { resolveContext } from "../../mcp/context.js";
 import { addEvent, updateEvent, removeEvent } from "../../mcp/tools/author.js";
 import { applyWriteFlow } from "../../mcp/tools/write-flow.js";

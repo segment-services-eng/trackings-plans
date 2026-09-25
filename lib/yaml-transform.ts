@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import yaml from "js-yaml";
+import * as yaml from "js-yaml";
 import type { Rule } from "./segment-api.js";
 
 export interface YamlProperty {
