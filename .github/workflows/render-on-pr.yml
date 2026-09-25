@@ -1,0 +1,127 @@
+name: Render docs and snapshot on PR
+
+on:
+  pull_request:
+    paths:
+      - 'tracking-rules/**'
+
+permissions:
+  contents: write
+  pull-requests: read
+
+concurrency:
+  group: render-on-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  render:
+    # Skip PRs from forks — pushing back to the PR branch requires write access
+    # to the head repo, which the GITHUB_TOKEN doesn't have across forks.
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest-large
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          ref: ${{ github.event.pull_request.head.ref }}
+          token: ${{ secrets.GITHUB_TOKEN }}
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Detect changed plans
+        id: changed
+        env:
+          BASE_REF: ${{ github.base_ref }}
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "$BASE_REF"
+          plans=$(git diff --name-only "origin/${BASE_REF}...HEAD" -- 'tracking-rules/**' \
+            | awk -F/ 'NF >= 3 && $1 == "tracking-rules" { print $2 }' \
+            | sort -u)
+          if [ -z "$plans" ]; then
+            echo "No tracking-rules changes detected."
+          else
+            echo "Changed plans:"
+            echo "$plans"
+          fi
+          # Emit as newline-separated in a multi-line output.
+          {
+            echo 'plans<<EOF'
+            echo "$plans"
+            echo 'EOF'
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Regenerate snapshot + markdown for each changed plan
+        if: steps.changed.outputs.plans != ''
+        env:
+          PLANS: ${{ steps.changed.outputs.plans }}
+        run: |
+          set -euo pipefail
+          while IFS= read -r plan; do
+            [ -z "$plan" ] && continue
+            plan_dir="tracking-rules/${plan}"
+            if [ ! -d "$plan_dir" ]; then
+              echo "Skipping ${plan}: directory ${plan_dir} no longer exists (fully deleted plan)."
+              continue
+            fi
+            # Look up the plan's display name from config; fall back to the path.
+            name=$(jq -r --arg p "$plan" '.plans[] | select(.path == $p) | .name' config/tracking-plans-config.json)
+            if [ -z "$name" ] || [ "$name" = "null" ]; then
+              echo "Plan '${plan}' is not in config/tracking-plans-config.json; skipping."
+              continue
+            fi
+            snapshot_path="plans/prod/${plan}/current-rules.json"
+            docs_path="docs/${plan}_tracking_plan.md"
+
+            echo "::group::Rebuild snapshot for ${plan}"
+            mkdir -p "plans/prod/${plan}"
+            node -e '
+              const fs = require("fs");
+              const path = require("path");
+              const { loadYamlRuleFile, yamlToRule } = require("./dist/lib/yaml-transform.js");
+              const [planDir, outPath] = process.argv.slice(2);
+              const files = fs.readdirSync(planDir)
+                .filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"))
+                .map((f) => path.join(planDir, f))
+                .sort();
+              const rules = files.map((f) => yamlToRule(loadYamlRuleFile(f)));
+              fs.mkdirSync(path.dirname(outPath), { recursive: true });
+              fs.writeFileSync(outPath, JSON.stringify({ rules }, null, 2) + "\n", "utf8");
+              console.log(`Wrote ${outPath} (${rules.length} rules from ${files.length} files)`);
+            ' "$plan_dir" "$snapshot_path"
+            echo "::endgroup::"
+
+            echo "::group::Render markdown for ${plan}"
+            node scripts/render-tp.js "${name} Tracking Plan" "$snapshot_path" "$docs_path"
+            echo "::endgroup::"
+          done <<< "$PLANS"
+
+      - name: Commit and push if anything changed
+        if: steps.changed.outputs.plans != ''
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+          git add plans/prod docs
+          if git diff --cached --quiet; then
+            echo "Docs and snapshot already in sync."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git commit -m "chore: regenerate docs and snapshot [skip ci]"
+          git push origin "HEAD:${HEAD_REF}"
