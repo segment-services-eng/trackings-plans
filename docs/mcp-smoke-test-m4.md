@@ -4,7 +4,6 @@ Covers the M4 changes: 20 tools total, session branches through `add_event`, the
 
 ## Prerequisites
 
-- The M1 and M2 smoke tests pass (`docs/mcp-smoke-test.md`, `docs/mcp-smoke-test-m2.md`).
 - A **throwaway Dev tracking plan** in Segment. Never point this test at a Dev plan other people depend on.
 - The four M4 workflows exist on the default branch: `deploy-dev.yml`, `deploy-prod.yml`, `reset-dev.yml`, `prod-drift.yml`. The `deploy-dev` label exists on the repo.
 - GitHub Actions secrets are set: `SEGMENT_PUBLIC_API_TOKEN` and matching `DEV_/PROD_SEGMENT_TRACKING_PLAN_ID_<NAME>` for the plan under test. **These are NOT in the MCP client env.**

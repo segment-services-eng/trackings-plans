@@ -340,5 +340,5 @@ gh workflow run reset-dev.yml -f plan=<plan-name-or-all> -f request_id=$(uuidgen
 
 ### Smoke tests and CI
 
-- Manual smoke scripts: [`docs/mcp-smoke-test.md`](docs/mcp-smoke-test.md) (read), [`docs/mcp-smoke-test-m2.md`](docs/mcp-smoke-test-m2.md) (validate, preview, author, and bulk), [`docs/mcp-smoke-test-m4.md`](docs/mcp-smoke-test-m4.md) (workflow tools + redaction).
+- Manual smoke test: [`docs/mcp-smoke-test-m4.md`](docs/mcp-smoke-test-m4.md) covers read, validate, preview, author, bulk, workflow tools, and redaction end-to-end.
 - `.github/workflows/mcp-ci.yml` runs on PRs that touch `lib/`, `mcp/`, `tests/`, or the build config. It runs typecheck, tests, build, `npm pack --dry-run`, and a stdio smoke check that sends `initialize` and `tools/list` to the built server.

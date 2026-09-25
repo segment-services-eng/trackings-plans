@@ -22,8 +22,7 @@ function collectSteps(doc: any): any[] {
   return steps;
 }
 
-// Every workflow the MCP can dispatch by request_id must honor the contract
-// documented in docs/superpowers/specs/2026-09-24-tracking-plans-mcp-m4-design.md:
+// Every workflow the MCP can dispatch by request_id must honor three rules:
 // (1) run-name embeds the request_id so the MCP can locate the run;
 // (2) an artifact named "result" is uploaded on every outcome (if: always());
 // (3) workflow_dispatch inputs include request_id: string, required.
