@@ -26,35 +26,16 @@ function makeRepo(): string {
       ],
     }),
   );
-  // dev has A(x), B(y); prod has A(x, z), C(w)
-  const devDir = join(repo, "plans", "dev", "javascript");
-  mkdirSync(devDir, { recursive: true });
+  // dev has A(x), B(y) as YAML; prod has A(x, z), C(w) as snapshot
+  const devYaml = join(repo, "tracking-rules", "javascript");
+  mkdirSync(devYaml, { recursive: true });
   writeFileSync(
-    join(devDir, "current-rules.json"),
-    JSON.stringify({
-      rules: [
-        {
-          key: "A",
-          type: "TRACK",
-          version: 1,
-          jsonSchema: {
-            properties: {
-              properties: { type: "object", properties: { x: { type: "string" } } },
-            },
-          },
-        },
-        {
-          key: "B",
-          type: "TRACK",
-          version: 1,
-          jsonSchema: {
-            properties: {
-              properties: { type: "object", properties: { y: { type: "string" } } },
-            },
-          },
-        },
-      ],
-    }),
+    join(devYaml, "A.yml"),
+    "rules:\n  - key: A\n    type: TRACK\n    version: 1\n    properties:\n      x:\n        type: string\n",
+  );
+  writeFileSync(
+    join(devYaml, "B.yml"),
+    "rules:\n  - key: B\n    type: TRACK\n    version: 1\n    properties:\n      y:\n        type: string\n",
   );
   const prodDir = join(repo, "plans", "prod", "javascript");
   mkdirSync(prodDir, { recursive: true });
@@ -168,30 +149,12 @@ describe("diffPlans — description and required changes", () => {
         ],
       }),
     );
-    // dev: event E with description "Old description" and prop p (not required)
-    const devDir = join(repo, "plans", "dev", "javascript");
-    mkdirSync(devDir, { recursive: true });
+    // dev: YAML event E with description "Old description" and prop p (not required)
+    const devYaml = join(repo, "tracking-rules", "javascript");
+    mkdirSync(devYaml, { recursive: true });
     writeFileSync(
-      join(devDir, "current-rules.json"),
-      JSON.stringify({
-        rules: [
-          {
-            key: "E",
-            type: "TRACK",
-            version: 1,
-            jsonSchema: {
-              description: "Old description",
-              properties: {
-                properties: {
-                  type: "object",
-                  properties: { p: { type: "string" } },
-                  required: [],
-                },
-              },
-            },
-          },
-        ],
-      }),
+      join(devYaml, "E.yml"),
+      "rules:\n  - key: E\n    type: TRACK\n    version: 1\n    description: Old description\n    properties:\n      p:\n        type: string\n",
     );
     // prod: event E with description "New description" and prop p (now required)
     const prodDir = join(repo, "plans", "prod", "javascript");
@@ -275,27 +238,11 @@ describe("findPropertyUsage — cross-plan search", () => {
       }),
     );
     for (const planPath of ["javascript", "server"]) {
-      const dir = join(repo, "plans", "dev", planPath);
+      const dir = join(repo, "tracking-rules", planPath);
       mkdirSync(dir, { recursive: true });
       writeFileSync(
-        join(dir, "current-rules.json"),
-        JSON.stringify({
-          rules: [
-            {
-              key: "Event With User",
-              type: "TRACK",
-              version: 1,
-              jsonSchema: {
-                properties: {
-                  properties: {
-                    type: "object",
-                    properties: { user_id: { type: "string" } },
-                  },
-                },
-              },
-            },
-          ],
-        }),
+        join(dir, "Event_With_User.yml"),
+        "rules:\n  - key: Event With User\n    type: TRACK\n    version: 1\n    properties:\n      user_id:\n        type: string\n",
       );
     }
     return repo;

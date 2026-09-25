@@ -42,13 +42,30 @@ export function readYamlRules(repoPath: string, planPath: string): YamlRule[] {
     .map((f) => loadYamlRuleFile(join(dir, f)));
 }
 
+function rulesForEnv(
+  repoPath: string,
+  env: "dev" | "prod",
+  planPath: string,
+): { rules: YamlRule[]; source: "yaml" | "snapshot" } {
+  if (env === "dev") {
+    return { rules: readYamlRules(repoPath, planPath), source: "yaml" };
+  }
+  return {
+    rules: readPlanSnapshot(repoPath, env, planPath).map(ruleToYaml),
+    source: "snapshot",
+  };
+}
+
 export async function validateEvent(
   ctx: ServerContext,
   args: z.infer<typeof validateEventInput>,
-): Promise<ToolResult<{ findings: Finding[] }>> {
-  const resolved = resolvePlanOr<{ findings: Finding[] }>(ctx, args.plan);
+): Promise<ToolResult<{ source: "yaml" | "snapshot"; findings: Finding[] }>> {
+  const resolved = resolvePlanOr<{ source: "yaml" | "snapshot"; findings: Finding[] }>(
+    ctx,
+    args.plan,
+  );
   if ("ok" in resolved) return resolved;
-  const rules = readPlanSnapshot(ctx.repoPath, args.env, resolved.plan.path);
+  const { rules, source } = rulesForEnv(ctx.repoPath, args.env, resolved.plan.path);
   const match = rules.find((r) => r.key === args.key);
   if (!match) {
     return err(
@@ -56,29 +73,32 @@ export async function validateEvent(
       `Event "${args.key}" not found in ${resolved.plan.name} (${args.env})`,
     );
   }
-  return ok({ findings: validateRule(ruleToYaml(match)) });
+  return ok({ source, findings: validateRule(match) });
 }
 
 export async function validatePlan(
   ctx: ServerContext,
   args: z.infer<typeof validatePlanInput>,
 ): Promise<
-  ToolResult<{ findings: Finding[]; summary: { errors: number; warnings: number } }>
+  ToolResult<{
+    source: "yaml" | "snapshot";
+    findings: Finding[];
+    summary: { errors: number; warnings: number };
+  }>
 > {
   const resolved = resolvePlanOr<{
+    source: "yaml" | "snapshot";
     findings: Finding[];
     summary: { errors: number; warnings: number };
   }>(ctx, args.plan);
   if ("ok" in resolved) return resolved;
-  const rules = readPlanSnapshot(ctx.repoPath, args.env, resolved.plan.path).map(
-    ruleToYaml,
-  );
+  const { rules, source } = rulesForEnv(ctx.repoPath, args.env, resolved.plan.path);
   const findings = libValidatePlan(rules);
   const summary = {
     errors: findings.filter((f) => f.severity === "error").length,
     warnings: findings.filter((f) => f.severity === "warning").length,
   };
-  return ok({ findings, summary });
+  return ok({ source, findings, summary });
 }
 
 export async function lintRules(
