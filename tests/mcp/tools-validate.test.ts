@@ -21,43 +21,15 @@ function makeRepo(): string {
       ],
     }),
   );
-  const planDir = join(repo, "plans", "dev", "javascript");
-  mkdirSync(planDir, { recursive: true });
+  const yamlDir = join(repo, "tracking-rules", "javascript");
+  mkdirSync(yamlDir, { recursive: true });
   writeFileSync(
-    join(planDir, "current-rules.json"),
-    JSON.stringify({
-      rules: [
-        {
-          key: "Product Viewed",
-          type: "TRACK",
-          version: 1,
-          jsonSchema: {
-            description: "Fired on view",
-            properties: {
-              properties: {
-                type: "object",
-                properties: {
-                  product_id: { type: "string", description: "id" },
-                },
-              },
-            },
-          },
-        },
-        {
-          key: "Bad Event",
-          type: "TRACK",
-          version: 1,
-          jsonSchema: {
-            properties: {
-              properties: {
-                type: "object",
-                properties: { p: { type: "banana" } },
-              },
-            },
-          },
-        },
-      ],
-    }),
+    join(yamlDir, "Product_Viewed.yml"),
+    "rules:\n  - key: Product Viewed\n    type: TRACK\n    version: 1\n    description: Fired on view\n    properties:\n      product_id:\n        type: string\n        description: id\n",
+  );
+  writeFileSync(
+    join(yamlDir, "Bad_Event.yml"),
+    "rules:\n  - key: Bad Event\n    type: TRACK\n    version: 1\n    properties:\n      p:\n        type: banana\n",
   );
   return repo;
 }
@@ -87,6 +59,7 @@ describe("validate MCP tools", () => {
       key: "Bad Event",
     });
     if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("yaml");
     expect(res.data.findings.map((f) => f.code)).toContain("invalid_property_type");
   });
 
@@ -106,8 +79,40 @@ describe("validate MCP tools", () => {
     const ctx = resolveContext({ REPO_PATH: makeRepo() });
     const res = await validatePlan(ctx, { plan: "javascript", env: "dev" });
     if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("yaml");
     expect(res.data.summary.errors).toBeGreaterThanOrEqual(1);
     expect(res.data.findings.length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("validate_plan on env: 'prod' reads snapshot and carries source: 'snapshot'", async () => {
+    const repo = makeRepo();
+    const prodDir = join(repo, "plans", "prod", "javascript");
+    mkdirSync(prodDir, { recursive: true });
+    writeFileSync(
+      join(prodDir, "current-rules.json"),
+      JSON.stringify({
+        rules: [
+          {
+            key: "Product Viewed",
+            type: "TRACK",
+            version: 1,
+            jsonSchema: {
+              description: "Fired on view",
+              properties: {
+                properties: {
+                  type: "object",
+                  properties: { product_id: { type: "string", description: "id" } },
+                },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const res = await validatePlan(ctx, { plan: "javascript", env: "prod" });
+    if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("snapshot");
   });
 
   it("lint_rules emits orphan_event findings for YAML vs snapshot", async () => {

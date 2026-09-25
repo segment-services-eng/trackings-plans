@@ -21,10 +21,21 @@ function makeRepo(): string {
       ],
     }),
   );
-  const planDir = join(repo, "plans", "dev", "javascript");
-  mkdirSync(planDir, { recursive: true });
+  const yamlDir = join(repo, "tracking-rules", "javascript");
+  mkdirSync(yamlDir, { recursive: true });
   writeFileSync(
-    join(planDir, "current-rules.json"),
+    join(yamlDir, "Product_Viewed.yml"),
+    "rules:\n  - key: Product Viewed\n    type: TRACK\n    version: 1\n    description: Fired on view\n    properties:\n      product_id:\n        type: string\n        description: id\n        required: true\n",
+  );
+  writeFileSync(
+    join(yamlDir, "Order_Completed.yml"),
+    "rules:\n  - key: Order Completed\n    type: TRACK\n    version: 1\n    properties:\n      order_id:\n        type: string\n",
+  );
+  // Also stash a prod snapshot so we can exercise the snapshot path.
+  const prodDir = join(repo, "plans", "prod", "javascript");
+  mkdirSync(prodDir, { recursive: true });
+  writeFileSync(
+    join(prodDir, "current-rules.json"),
     JSON.stringify({
       rules: [
         {
@@ -32,27 +43,12 @@ function makeRepo(): string {
           type: "TRACK",
           version: 1,
           jsonSchema: {
-            description: "Fired on view",
+            description: "Fired on view (prod)",
             properties: {
               properties: {
                 type: "object",
-                properties: {
-                  product_id: { type: "string", description: "id" },
-                },
+                properties: { product_id: { type: "string", description: "id" } },
                 required: ["product_id"],
-              },
-            },
-          },
-        },
-        {
-          key: "Order Completed",
-          type: "TRACK",
-          version: 1,
-          jsonSchema: {
-            properties: {
-              properties: {
-                type: "object",
-                properties: { order_id: { type: "string" } },
               },
             },
           },
@@ -76,14 +72,33 @@ describe("mcp/tools/read", () => {
     expect(res.data.plans).toEqual([{ name: "JavaScript", path: "javascript" }]);
   });
 
-  it("listEvents returns events from dev snapshot", async () => {
+  it("listEvents returns events from dev YAML with source: 'yaml'", async () => {
     const res = await listEvents(ctx, { plan: "javascript", env: "dev" });
     expect(res.ok).toBe(true);
     if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("yaml");
     expect(res.data.events.map((e) => e.key).sort()).toEqual([
       "Order Completed",
       "Product Viewed",
     ]);
+  });
+
+  it("listEvents returns events from prod snapshot with source: 'snapshot'", async () => {
+    const res = await listEvents(ctx, { plan: "javascript", env: "prod" });
+    if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("snapshot");
+    expect(res.data.events.map((e) => e.key)).toEqual(["Product Viewed"]);
+  });
+
+  it("getEvent from prod snapshot carries source: 'snapshot'", async () => {
+    const res = await getEvent(ctx, {
+      plan: "javascript",
+      env: "prod",
+      key: "Product Viewed",
+    });
+    if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("snapshot");
+    expect(res.data.event.description).toBe("Fired on view (prod)");
   });
 
   it("listEvents filter matches by regex on key", async () => {
@@ -124,6 +139,7 @@ describe("mcp/tools/read", () => {
       key: "Product Viewed",
     });
     if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("yaml");
     expect(res.data.event.description).toBe("Fired on view");
     expect(res.data.event.properties.product_id.required).toBe(true);
   });

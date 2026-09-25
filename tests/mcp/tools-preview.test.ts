@@ -38,9 +38,43 @@ describe("preview MCP tools", () => {
     const ctx = resolveContext({ REPO_PATH: makeRepo() });
     const res = await previewMarkdown(ctx, { plan: "javascript" });
     if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("yaml");
     expect(res.data.markdown).toContain("# JavaScript");
     expect(res.data.markdown).toContain("## Product Viewed");
     expect(res.data.markdown).toContain("| **product_id** | `string`");
+  });
+
+  it("previewMarkdown renders from prod snapshot when env:'prod' is passed", async () => {
+    const repo = makeRepo();
+    const prodDir = join(repo, "plans", "prod", "javascript");
+    mkdirSync(prodDir, { recursive: true });
+    writeFileSync(
+      join(prodDir, "current-rules.json"),
+      JSON.stringify({
+        rules: [
+          {
+            key: "Product Viewed",
+            type: "TRACK",
+            version: 1,
+            jsonSchema: {
+              description: "Fired on view (prod)",
+              properties: {
+                properties: {
+                  type: "object",
+                  properties: { product_id: { type: "string", description: "id" } },
+                  required: ["product_id"],
+                },
+              },
+            },
+          },
+        ],
+      }),
+    );
+    const ctx = resolveContext({ REPO_PATH: repo });
+    const res = await previewMarkdown(ctx, { plan: "javascript", env: "prod" });
+    if (!res.ok) throw new Error();
+    expect(res.data.source).toBe("snapshot");
+    expect(res.data.markdown).toContain("Fired on view (prod)");
   });
 
   it("previewSegmentPayload returns Segment JSON for an event", async () => {

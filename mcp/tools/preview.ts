@@ -27,7 +27,11 @@ export async function previewMarkdown(
   ctx: ServerContext,
   args: z.infer<typeof previewMarkdownInput>,
 ): Promise<
-  ToolResult<{ markdown: string; diff_against_committed: string | null }>
+  ToolResult<{
+    source: "yaml" | "snapshot";
+    markdown: string;
+    diff_against_committed: string | null;
+  }>
 > {
   let plan;
   try {
@@ -36,7 +40,16 @@ export async function previewMarkdown(
     if (e instanceof PlanNotFoundError) return err("NOT_FOUND", e.message);
     throw e;
   }
-  const source = args.source ?? "yaml";
+  // Derive source from env when only env is given (env:"dev" -> yaml, env:"prod" -> snapshot).
+  // Explicit `source` still wins for backward compatibility.
+  let source: "yaml" | "snapshot";
+  if (args.source) {
+    source = args.source;
+  } else if (args.env === "prod") {
+    source = "snapshot";
+  } else {
+    source = "yaml";
+  }
   let rules: Rule[];
   if (source === "yaml") {
     rules = readYamlRules(ctx.repoPath, plan.path).map(yamlToRule);
@@ -75,7 +88,10 @@ export async function previewMarkdown(
       }
     }
   }
-  return ok({ markdown, diff_against_committed: diff }, warnings.length ? warnings : undefined);
+  return ok(
+    { source, markdown, diff_against_committed: diff },
+    warnings.length ? warnings : undefined,
+  );
 }
 
 export async function previewSegmentPayload(

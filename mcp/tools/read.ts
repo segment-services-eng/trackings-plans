@@ -2,9 +2,28 @@ import { z } from "zod";
 import { execFileSync } from "node:child_process";
 import type { ServerContext } from "../context.js";
 import { readPlanSnapshot } from "../../lib/plan-snapshot.js";
-import { ruleToYaml } from "../../lib/yaml-transform.js";
+import { ruleToYaml, yamlToRule, type YamlRule } from "../../lib/yaml-transform.js";
+import type { Rule } from "../../lib/segment-api.js";
 import { PlanNotFoundError } from "../../lib/plans-config.js";
+import { readYamlRules } from "./validate.js";
 import { err, ok, ToolResult } from "./result.js";
+
+/**
+ * Read a plan's rules from the appropriate source given env:
+ *  - "dev"  -> YAML tree under tracking-rules/<plan>/** (source of truth on the branch)
+ *  - "prod" -> plans/prod/<plan>/current-rules.json snapshot
+ */
+function readRulesForEnv(
+  repoPath: string,
+  env: "dev" | "prod",
+  planPath: string,
+): { rules: Rule[]; source: "yaml" | "snapshot" } {
+  if (env === "dev") {
+    const yamlRules: YamlRule[] = readYamlRules(repoPath, planPath);
+    return { rules: yamlRules.map(yamlToRule), source: "yaml" };
+  }
+  return { rules: readPlanSnapshot(repoPath, env, planPath), source: "snapshot" };
+}
 
 export const listPlansInput = z.object({}).strict();
 export const listEventsInput = z
@@ -38,6 +57,7 @@ export async function listEvents(
   args: z.infer<typeof listEventsInput>,
 ): Promise<
   ToolResult<{
+    source: "yaml" | "snapshot";
     events: Array<{ key: string; description: string | null; property_count: number }>;
   }>
 > {
@@ -50,7 +70,7 @@ export async function listEvents(
     }
     throw e;
   }
-  const rules = readPlanSnapshot(ctx.repoPath, args.env, plan.path);
+  const { rules, source } = readRulesForEnv(ctx.repoPath, args.env, plan.path);
   let filterRegex: RegExp | null = null;
   if (args.filter) {
     try {
@@ -78,13 +98,15 @@ export async function listEvents(
       args.has_property ? args.has_property in e._props : true,
     )
     .map(({ _props, ...rest }) => rest);
-  return ok({ events });
+  return ok({ source, events });
 }
 
 export async function getEvent(
   ctx: ServerContext,
   args: z.infer<typeof getEventInput>,
-): Promise<ToolResult<{ event: ReturnType<typeof ruleToYaml> }>> {
+): Promise<
+  ToolResult<{ source: "yaml" | "snapshot"; event: ReturnType<typeof ruleToYaml> }>
+> {
   let plan;
   try {
     plan = ctx.resolvePlanOrThrow(args.plan);
@@ -94,7 +116,7 @@ export async function getEvent(
     }
     throw e;
   }
-  const rules = readPlanSnapshot(ctx.repoPath, args.env, plan.path);
+  const { rules, source } = readRulesForEnv(ctx.repoPath, args.env, plan.path);
   const match = rules.find((r) => r.key === args.key);
   if (!match) {
     return err(
@@ -102,7 +124,7 @@ export async function getEvent(
       `Event "${args.key}" not found in ${plan.name} (${args.env})`,
     );
   }
-  return ok({ event: ruleToYaml(match) });
+  return ok({ source, event: ruleToYaml(match) });
 }
 
 export const diffPlansInput = z
@@ -162,8 +184,8 @@ export async function diffPlans(
     if (e instanceof PlanNotFoundError) return err("NOT_FOUND", e.message);
     throw e;
   }
-  const rulesA = readPlanSnapshot(ctx.repoPath, args.envA, a.path);
-  const rulesB = readPlanSnapshot(ctx.repoPath, args.envB, b.path);
+  const rulesA = readRulesForEnv(ctx.repoPath, args.envA, a.path).rules;
+  const rulesB = readRulesForEnv(ctx.repoPath, args.envB, b.path).rules;
   const mapA = new Map(rulesA.map((r) => [r.key, r]));
   const mapB = new Map(rulesB.map((r) => [r.key, r]));
 
@@ -234,7 +256,7 @@ export async function findPropertyUsage(
   }
   const usages: Array<{ plan: string; event: string }> = [];
   for (const p of plansToSearch) {
-    const rules = readPlanSnapshot(ctx.repoPath, args.env, p.path);
+    const rules = readRulesForEnv(ctx.repoPath, args.env, p.path).rules;
     for (const r of rules) {
       if (args.property in propsOf(r)) {
         usages.push({ plan: p.path, event: r.key });
