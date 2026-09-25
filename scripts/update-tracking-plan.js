@@ -3,7 +3,19 @@ const { createSegmentClient } = require('../dist/lib/segment-api.js');
 const { loadYamlRuleFile, yamlToRule } = require('../dist/lib/yaml-transform.js');
 
 function getChangedFiles(directory) {
-  const files = execSync('git diff --name-only HEAD^ HEAD').toString().split('\n');
+  const baseRef = process.env.BASE_REF || 'origin/main';
+  // Diff from the merge-base of BASE_REF..HEAD so multi-commit branches include
+  // every YAML change since branching, not just the final commit.
+  let range;
+  try {
+    const mergeBase = execSync(`git merge-base ${baseRef} HEAD`).toString().trim();
+    range = `${mergeBase}..HEAD`;
+  } catch {
+    // Fall back to comparing against BASE_REF directly (e.g. when no shared
+    // history has been fetched). Any error will surface as an empty diff.
+    range = `${baseRef}..HEAD`;
+  }
+  const files = execSync(`git diff --name-only ${range}`).toString().split('\n');
   return files.filter((f) => f.startsWith(directory) && f.endsWith('.yml'));
 }
 

@@ -10,10 +10,15 @@ async function main() {
     process.exit(1);
   }
   const client = createSegmentClient({ apiKey });
-  await resetRules(client, trackingPlanId, readSnapshotSources(planDir), (m) =>
-    console.log(m),
+  const { deleted, patched } = await resetRules(
+    client,
+    trackingPlanId,
+    readSnapshotSources(planDir),
+    (m) => console.log(m),
   );
-  console.log('Tracking plan reset complete.');
+  console.log(
+    `Reset ${trackingPlanId}: patched ${patched} rules, deleted ${deleted} rules`,
+  );
 }
 
 main().catch((err) => {

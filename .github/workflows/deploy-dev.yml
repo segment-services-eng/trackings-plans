@@ -65,6 +65,14 @@ jobs:
       - name: Build lib/
         run: npm run build
 
+      - name: Fetch base ref for diff
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.ref || 'main' }}
+        run: |
+          # update-tracking-plan.js diffs against origin/<base>..HEAD; ensure
+          # the base ref is present in the local repo before the deploy step.
+          git fetch --no-tags --depth=50 origin "$BASE_REF":"refs/remotes/origin/$BASE_REF"
+
       - name: Initialize result.json
         run: |
           echo '{"ok":true,"workflow":"deploy-dev.yml","plans":[],"errors":[]}' > "$RUNNER_TEMP/result.json"
@@ -91,6 +99,7 @@ jobs:
           SEGMENT_API_KEY: ${{ secrets.SEGMENT_PUBLIC_API_TOKEN }}
           DEV_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT: ${{ secrets.DEV_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT }}
           DEV_SEGMENT_TRACKING_PLAN_ID_SERVER: ${{ secrets.DEV_SEGMENT_TRACKING_PLAN_ID_SERVER }}
+          BASE_REF: origin/${{ github.event.pull_request.base.ref || 'main' }}
         run: |
           set +e
           overall_ok=true

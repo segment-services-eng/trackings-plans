@@ -153,9 +153,16 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           BRANCH="tp/drift/prod"
-          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
-            git push origin --delete "$BRANCH" || true
+          if ! git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            echo "No drift branch on origin — nothing to clean up."
+            exit 0
           fi
+          OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length' 2>/dev/null || echo 0)
+          if [ "$OPEN_PRS" != "0" ]; then
+            echo "Open PR(s) on $BRANCH — leaving branch in place so PR stays open."
+            exit 0
+          fi
+          git push origin --delete "$BRANCH" || true
 
       - name: Upload result artifact
         if: always()

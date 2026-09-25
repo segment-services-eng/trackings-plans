@@ -60,6 +60,7 @@ jobs:
           SEGMENT_API_KEY: ${{ secrets.SEGMENT_PUBLIC_API_TOKEN }}
           PROD_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT: ${{ secrets.PROD_SEGMENT_TRACKING_PLAN_ID_JAVASCRIPT }}
           PROD_SEGMENT_TRACKING_PLAN_ID_SERVER: ${{ secrets.PROD_SEGMENT_TRACKING_PLAN_ID_SERVER }}
+          BASE_REF: HEAD^
         run: |
           set +e
           overall_ok=true
@@ -131,7 +132,7 @@ jobs:
             exit 0
           fi
           git commit -m "chore(prod): sync snapshot and docs [skip ci]"
-          git pull --rebase origin main || git pull --autostash origin main
+          git pull --rebase --autostash origin main
           git push origin main
 
       - name: Upload result artifact
