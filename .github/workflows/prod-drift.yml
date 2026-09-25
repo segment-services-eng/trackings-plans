@@ -114,6 +114,9 @@ jobs:
         if: success() && steps.drift.outputs.any_drift == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SERVER_URL: ${{ github.server_url }}
+          REPO: ${{ github.repository }}
+          RUN_ID: ${{ github.run_id }}
         run: |
           set -e
           BRANCH="tp/drift/prod"
@@ -136,7 +139,7 @@ jobs:
           {
             echo "Automated drift detection: Segment prod tracking plans differ from the committed snapshot."
             echo ""
-            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo "Run: $SERVER_URL/$REPO/actions/runs/$RUN_ID"
             echo ""
             echo "Review the diff and either merge to accept the drift into main, or reconcile via \`tracking-rules/\` YAML."
           } > "$BODY_FILE"

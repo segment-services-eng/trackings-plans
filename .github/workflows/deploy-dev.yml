@@ -39,12 +39,17 @@ jobs:
     steps:
       - name: Determine checkout ref
         id: ref
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_PLAN: ${{ inputs.plan }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
         run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "sha=${{ inputs.ref }}" >> "$GITHUB_OUTPUT"
-            echo "plan=${{ inputs.plan }}" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT_NAME" = "workflow_dispatch" ]; then
+            echo "sha=$INPUT_REF" >> "$GITHUB_OUTPUT"
+            echo "plan=$INPUT_PLAN" >> "$GITHUB_OUTPUT"
           else
-            echo "sha=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+            echo "sha=$PR_HEAD_SHA" >> "$GITHUB_OUTPUT"
             echo "plan=all" >> "$GITHUB_OUTPUT"
           fi
 
