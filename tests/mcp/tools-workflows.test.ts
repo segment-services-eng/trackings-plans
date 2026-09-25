@@ -94,7 +94,7 @@ describe("dispatch contract", () => {
     const d = f.forge.dispatches[0];
     expect(d.workflow).toBe("reset-dev.yml");
     expect(d.ref).toBe("main");
-    expect(d.inputs.request_id).toMatch(/^mcp-\d+-[0-9a-z]{6}$/);
+    expect(d.inputs.request_id).toMatch(/^mcp-\d+-[A-Za-z0-9_-]{6}$/);
     expect(d.inputs).toEqual({ request_id: d.inputs.request_id, plan: "javascript" });
     if (res.ok) expect(res.data.request_id).toBe(d.inputs.request_id);
   });

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { execFileSync } from "node:child_process";
+import { randomBytes } from "node:crypto";
 import type { ServerContext } from "../context.js";
 import { err, ok, ToolResult } from "./result.js";
 import { ForgeError, type WorkflowRun, type WorkflowRunStatus } from "../../lib/forge.js";
@@ -66,8 +67,8 @@ export interface WorkflowRunOutput {
 const waitSeconds = z.number().int().min(0).max(45).optional();
 
 export function newRequestId(): string {
-  const rand = Math.random().toString(36).slice(2, 8).padEnd(6, "0");
-  return `mcp-${Date.now()}-${rand}`;
+  // 4 random bytes -> 6-char base64url suffix; ~32 bits of entropy regardless of the RNG draw.
+  return `mcp-${Date.now()}-${randomBytes(4).toString("base64url")}`;
 }
 
 function forgeFailure(e: unknown, message: string, extra: Record<string, unknown>): ToolResult<never> {

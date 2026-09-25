@@ -100,6 +100,11 @@ const defaultOctokitFactory = async (token: string): Promise<OctokitLike> => {
   return new Octokit({ auth: token }) as unknown as OctokitLike;
 };
 
+/** Strip `user[:password]@` userinfo from a remote URL so tokens don't leak into error messages. */
+function stripUserinfo(url: string): string {
+  return url.replace(/(:\/\/)[^/@\s]+@/, "$1");
+}
+
 /** Parse owner/repo from an HTTPS, scp-style SSH, or ssh:// remote URL. */
 export function parseRemoteUrl(url: string): { owner: string; repo: string } | null {
   const m = url
@@ -169,7 +174,7 @@ export function createGitHubForge(opts: GitHubForgeOptions): ForgeClient {
     }
     const parsed = parseRemoteUrl(url);
     if (!parsed) {
-      throw new ForgeError("GITHUB_API", `Cannot parse owner/repo from remote URL "${url}"`);
+      throw new ForgeError("GITHUB_API", `Cannot parse owner/repo from remote URL "${stripUserinfo(url)}"`);
     }
     repoCache = parsed;
     return parsed;
