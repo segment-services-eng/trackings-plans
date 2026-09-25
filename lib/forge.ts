@@ -37,6 +37,7 @@ export interface ForgeClient {
     title: string;
     body: string;
   }): Promise<PullRequest>;
+  addLabels(prNumber: number, labels: string[]): Promise<void>;
   dispatchWorkflow(p: {
     workflow: string;
     ref: string;
