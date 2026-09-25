@@ -12,6 +12,7 @@ on:
 
 permissions:
   contents: write
+  pull-requests: write
 
 jobs:
   initialize-tracking-plans:
@@ -101,29 +102,41 @@ jobs:
           echo "Generating markdown for $PLAN_NAME"
           node scripts/render-tp.js "$PLAN_NAME Tracking Plan" "plans/prod/$PLAN_PATH/current-rules.json" "docs/${PLAN_PATH}_tracking_plan.md"
 
-      # **Step 5: Commit and Push Changes**
-      - name: Commit and Push Updates
+      # **Step 5: Commit changes on a branch and open a PR against main**
+      - name: Commit changes and open PR
         env:
           PLAN_NAME: ${{ matrix.tracking_plan.name }}
           PLAN_PATH: ${{ matrix.tracking_plan.path }}
+          RUN_ID: ${{ github.run_id }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Ensure we're on main branch
-          git fetch origin main
-          git checkout main
+          # Slugify plan name to lowercase kebab-case for the branch name
+          PLAN_SLUG=$(echo "$PLAN_NAME" \
+            | tr '[:upper:]' '[:lower:]' \
+            | sed -E 's/[^a-z0-9]+/-/g; s/^-+//; s/-+$//')
+          BRANCH="tp/init/${PLAN_SLUG}-${RUN_ID}"
+
+          git checkout -b "$BRANCH"
 
           git add "plans/dev/$PLAN_PATH/current-rules.json" \
                   "plans/prod/$PLAN_PATH/current-rules.json" \
                   "tracking-rules/$PLAN_PATH"/*.yml \
                   "docs/${PLAN_PATH}_tracking_plan.md"
 
-          git commit -m "Initialized tracking plans for $PLAN_NAME [skip ci]" || echo "No changes to commit"
+          if git diff --cached --quiet; then
+            echo "No changes to commit for $PLAN_NAME; skipping PR."
+            exit 0
+          fi
 
-          # Fetch latest changes & merge automatically
-          git pull --rebase origin main || git pull --autostash origin main
+          git commit -m "Initialize tracking plan for $PLAN_NAME"
+          git push -u origin "$BRANCH"
 
-          # Push changes
-          git push origin main
+          gh pr create \
+            --head "$BRANCH" \
+            --base main \
+            --title "Initialize $PLAN_NAME tracking plan" \
+            --body "Bootstrapped by initialize workflow. Review generated YAML + docs, then merge."
 
