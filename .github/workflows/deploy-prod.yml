@@ -24,7 +24,7 @@ permissions:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     environment: production
     steps:
       - name: Checkout repository

@@ -35,7 +35,7 @@ jobs:
       github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'pull_request' &&
        contains(github.event.pull_request.labels.*.name, 'deploy-dev'))
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     steps:
       - name: Determine checkout ref
         id: ref

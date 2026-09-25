@@ -15,7 +15,7 @@ permissions:
 
 jobs:
   initialize-tracking-plans:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
 
     outputs:
       matrix: ${{ steps.parse_json.outputs.matrix }}
@@ -41,7 +41,7 @@ jobs:
 
   matrix-job:
     needs: initialize-tracking-plans
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest-large
     strategy:
       matrix:
         tracking_plan: ${{ fromJson(needs.initialize-tracking-plans.outputs.matrix) }}
