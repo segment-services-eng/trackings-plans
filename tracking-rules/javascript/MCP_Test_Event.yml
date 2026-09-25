@@ -1,0 +1,12 @@
+rules:
+  - key: MCP Test Event
+    type: TRACK
+    version: 1
+    description: >-
+      Test event added via MCP to verify deploy-dev label auto-attach and
+      end-to-end flow.
+    properties:
+      test_run_id:
+        type: string
+        description: Identifier for the test invocation.
+        required: false
