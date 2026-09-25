@@ -216,7 +216,7 @@ claude mcp add tracking-plans \
 |----------|----------|-------------|
 | `REPO_PATH` | Yes | Absolute path to your clone of this repo. All reads and writes happen here. |
 | `GITHUB_TOKEN` / `GH_TOKEN` | No | Used by workflow tools and `pr` mode. If unset, the server falls back to the `gh` CLI (`gh auth login`). |
-| `MCP_WRITE_MODE` | No | Default write mode: `files`, `branch`, or `pr`. Falls back to `.tracking-plans-mcp.json`'s `write_mode`, then `pr`. |
+| `MCP_WRITE_MODE` | No | Default write mode: `files`, `branch`, or `pr`. Falls back to `.tracking-plans-mcp.json`'s `write_mode`, then `branch`. |
 
 **Segment credentials are no longer needed by the MCP.** All Segment API calls run inside GitHub Actions; the `SEGMENT_PUBLIC_API_TOKEN` and `*_SEGMENT_TRACKING_PLAN_ID_*` values live only as GitHub Actions secrets.
 
@@ -294,7 +294,7 @@ Supported keys:
 
 | Key | Values | Default | Meaning |
 |-----|--------|---------|---------|
-| `write_mode` | `files` \| `branch` \| `pr` | `pr` | Default write mode when a tool call omits `mode`. |
+| `write_mode` | `files` \| `branch` \| `pr` | `branch` | Default write mode when a tool call omits `mode`. |
 | `default_branch` | valid branch name | `main` | Base branch that `tp/…` session branches are cut from and that PRs target. Workflow tools always dispatch on this ref. |
 | `forge` | `github` | `github` | Which forge backend to use. `github` is the only value today; reserved for future backends. |
 

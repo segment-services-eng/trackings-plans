@@ -70,6 +70,25 @@ describe("parseRemoteUrl", () => {
   });
 });
 
+describe("repoInfo error messages", () => {
+  it("does not leak an embedded token when the remote URL fails to parse", async () => {
+    // Unparseable remote (no path segment) that still carries a token in userinfo.
+    const dodgy = "https://x-access-token:secrettoken123@nohostpath";
+    const f = fakeRun(() => ghFails(), dodgy);
+    const { factory } = fakeOctokit();
+    const forge = createGitHubForge({ repoPath: "/r", token: "t", run: f.run, octokitFactory: factory });
+    const e = await forge
+      .dispatchWorkflow({ workflow: "w.yml", ref: "main", inputs: { request_id: "q" } })
+      .catch((x) => x);
+    expect(e).toBeInstanceOf(ForgeError);
+    expect(e.message).not.toContain("secrettoken123");
+    expect(e.message).not.toContain("x-access-token");
+    // The scheme + host survive so the operator still knows which remote was rejected.
+    expect(e.message).toContain("nohostpath");
+    expect(e.message).toContain("https://");
+  });
+});
+
 describe("mapStatus", () => {
   it.each([
     ["queued", "queued"],
