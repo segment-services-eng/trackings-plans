@@ -10,6 +10,7 @@ export class FakeForge implements ForgeClient {
   prs: PullRequest[] = [];
   runs: WorkflowRun[] = [];
   results = new Map<number, unknown>();
+  labels = new Map<number, string[]>();
   dispatches: { workflow: string; ref: string; inputs: Record<string, string> }[] = [];
   /** When set, dispatchWorkflow creates a queued run named `<workflow> [<request_id>]`. */
   autoCreateRuns = true;
@@ -34,6 +35,11 @@ export class FakeForge implements ForgeClient {
     };
     this.prs.push(pr);
     return pr;
+  }
+
+  async addLabels(prNumber: number, labels: string[]): Promise<void> {
+    const existing = this.labels.get(prNumber) ?? [];
+    this.labels.set(prNumber, [...new Set([...existing, ...labels])]);
   }
 
   async dispatchWorkflow(p: {

@@ -227,6 +227,11 @@ export async function applyWriteFlow(
           .map((f) => `- \`${f}\``)
           .join("\n")}`,
       }));
+    try {
+      await ctx.forge.addLabels(pr.number, ["deploy-dev"]);
+    } catch {
+      // Label attach is best-effort — deploy-dev gate is convenience, not correctness.
+    }
     return ok({
       ...base,
       pr_url: pr.url,

@@ -49,6 +49,14 @@ export interface OctokitLike {
       body: string;
     }): Promise<{ data: OctoPull }>;
   };
+  issues: {
+    addLabels(p: {
+      owner: string;
+      repo: string;
+      issue_number: number;
+      labels: string[];
+    }): Promise<unknown>;
+  };
   actions: {
     createWorkflowDispatch(p: {
       owner: string;
@@ -273,6 +281,20 @@ export function createGitHubForge(opts: GitHubForgeOptions): ForgeClient {
         async (o, { owner, repo }) => {
           const { data } = await o.pulls.create({ owner, repo, head: branch, base, title, body });
           return { number: data.number, url: data.html_url, branch, base };
+        },
+      ),
+
+    addLabels: (prNumber, labels) =>
+      via<void>(
+        "pr edit --add-label",
+        async () => {
+          await gh([
+            "pr", "edit", String(prNumber),
+            ...labels.flatMap((l) => ["--add-label", l]),
+          ]);
+        },
+        async (o, { owner, repo }) => {
+          await o.issues.addLabels({ owner, repo, issue_number: prNumber, labels });
         },
       ),
 
