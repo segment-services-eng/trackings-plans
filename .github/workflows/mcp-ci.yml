@@ -2,16 +2,6 @@ name: MCP CI
 
 on:
   pull_request:
-    paths:
-      - 'lib/**'
-      - 'mcp/**'
-      - 'scripts/**'
-      - 'tests/**'
-      - 'package.json'
-      - 'package-lock.json'
-      - 'tsconfig.json'
-      - 'vitest.config.ts'
-      - '.github/workflows/mcp-ci.yml'
   push:
     branches:
       - main
