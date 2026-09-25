@@ -84,6 +84,7 @@ jobs:
               echo "Plan '${plan}' is not in config/tracking-plans-config.json; skipping."
               continue
             fi
+            plan_dir="tracking-rules/${plan}"
             snapshot_path="plans/prod/${plan}/current-rules.json"
             docs_path="docs/${plan}_tracking_plan.md"
 
