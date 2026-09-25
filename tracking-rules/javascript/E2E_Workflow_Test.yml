@@ -1,0 +1,13 @@
+rules:
+  - key: E2E Workflow Test
+    type: TRACK
+    version: 1
+    description: >-
+      End-to-end test of PR-based workflow: render-on-pr should regenerate docs
+      and snapshot on the PR branch; deploy-prod should sync to Segment on
+      merge.
+    properties:
+      scenario:
+        type: string
+        description: The scenario being tested.
+        required: true
