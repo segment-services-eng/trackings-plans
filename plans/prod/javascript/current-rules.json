@@ -413,6 +413,39 @@
       "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
+      "key": "MCP Test Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "description": "Test event added via MCP to verify deploy-dev label auto-attach and end-to-end flow.",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "test_run_id": {
+                "description": "Identifier for the test invocation.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-09-25T19:09:30.000Z",
+      "updatedAt": "2026-09-25T19:09:30.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
       "key": "Obj Prop",
       "type": "TRACK",
       "version": 1,
