@@ -66,19 +66,21 @@ So, it requires **5 GitHub Secrets**:
    - This triggers the `initialize-tracking-plans` workflow
    - It pulls tracking plans from Segment, saves them as JSON, generates YAML, and creates the markdown dictionary.
 
-### **Step 1: Updating Dev Tracking Plan**  
+### **Step 1: Updating Dev Tracking Plan**
 
-🔹 **Trigger**:  
+🔹 **Trigger**:
 
-- Pushing changes to `tracking-rules/javascript/**.yml` or `tracking-rules/server/**.yml` on a **new branch**  
-- This triggers the **Dev workflow** (`Update Development Tracking Plans`)
+- Open a PR touching `tracking-rules/**` on any branch and add the `deploy-dev` label
+- Or dispatch `deploy-dev.yml` from the Actions tab / via the MCP's `deploy_dev` tool
 
-🔹 **What Happens?**  
+🔹 **What Happens?**
 
-1. Converts the modified YAML rule(s) to JSON
-2. Updates the **Dev** tracking plan using a `PATCH` request  
-3. Fetches the updated rules from Segment & saves to `plans/dev/<TP_NAME>/current-rules.json`  
-4. Adds, commits, and pushes the changes  
+1. Converts the YAML rules on the PR's branch to Segment JSON
+2. Updates the **Dev** tracking plan using a `PATCH` request
+3. Posts a sticky comment on the PR with the deploy result
+4. **Does not commit back to the branch** — YAML in `tracking-rules/**` is the source of truth for dev
+
+The pre-M4 flow (auto-deploy on push, commit `plans/dev/**` snapshots) has been retired. Dev deploys are now explicit, and dev state lives on the branch.  
 
 ---
 
