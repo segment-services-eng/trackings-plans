@@ -99,4 +99,16 @@ describe("preview MCP tools", () => {
     if (res.ok) throw new Error();
     expect(res.error.code).toBe("NOT_FOUND");
   });
+
+  it("previewMarkdown with source:'snapshot' and env:'dev' returns VALIDATION", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    const res = await previewMarkdown(ctx, {
+      plan: "javascript",
+      source: "snapshot",
+      env: "dev",
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error();
+    expect(res.error.code).toBe("VALIDATION");
+  });
 });
