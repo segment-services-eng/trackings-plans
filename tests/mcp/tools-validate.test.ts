@@ -126,4 +126,17 @@ describe("validate MCP tools", () => {
     const orphans = res.data.findings.filter((f) => f.code === "orphan_event");
     expect(orphans.some((f) => f.path === "Only In Yaml")).toBe(true);
   });
+
+  it("lintRules with env:'dev' and source:'snapshot' returns VALIDATION error", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    const res = await lintRules(ctx, {
+      plan: "javascript",
+      env: "dev",
+      source: "snapshot",
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error();
+    expect(res.error.code).toBe("VALIDATION");
+    expect(res.error.message).toMatch(/snapshot.*prod|dev.*yaml/i);
+  });
 });

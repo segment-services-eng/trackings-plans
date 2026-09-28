@@ -51,7 +51,7 @@ function rulesForEnv(
     return { rules: readYamlRules(repoPath, planPath), source: "yaml" };
   }
   return {
-    rules: readPlanSnapshot(repoPath, env, planPath).map(ruleToYaml),
+    rules: readPlanSnapshot(repoPath, "prod", planPath).map(ruleToYaml),
     source: "snapshot",
   };
 }
@@ -108,12 +108,17 @@ export async function lintRules(
   const resolved = resolvePlanOr<{ findings: Finding[] }>(ctx, args.plan);
   if ("ok" in resolved) return resolved;
   const source = args.source ?? "snapshot";
+  if (source === "snapshot" && args.env === "dev") {
+    return err(
+      "VALIDATION",
+      "source: 'snapshot' requires env: 'prod'. For dev, use source: 'yaml' (the source of truth on the branch).",
+    );
+  }
   const yamlRules = readYamlRules(ctx.repoPath, resolved.plan.path);
-  const snapshotRules = readPlanSnapshot(
-    ctx.repoPath,
-    args.env,
-    resolved.plan.path,
-  ).map(ruleToYaml);
+  const snapshotRules =
+    args.env === "prod"
+      ? readPlanSnapshot(ctx.repoPath, "prod", resolved.plan.path).map(ruleToYaml)
+      : [];
 
   const base = source === "yaml" ? yamlRules : snapshotRules;
   const other = source === "yaml" ? snapshotRules : yamlRules;
