@@ -107,7 +107,7 @@ export async function lintRules(
 ): Promise<ToolResult<{ findings: Finding[] }>> {
   const resolved = resolvePlanOr<{ findings: Finding[] }>(ctx, args.plan);
   if ("ok" in resolved) return resolved;
-  const source = args.source ?? "snapshot";
+  const source = args.source ?? (args.env === "prod" ? "snapshot" : "yaml");
   if (source === "snapshot" && args.env === "dev") {
     return err(
       "VALIDATION",
@@ -124,15 +124,17 @@ export async function lintRules(
   const other = source === "yaml" ? snapshotRules : yamlRules;
   const findings: Finding[] = libValidatePlan(base);
 
-  const otherKeys = new Set(other.map((r) => r.key));
-  for (const r of base) {
-    if (r.key && !otherKeys.has(r.key)) {
-      findings.push({
-        severity: "warning",
-        code: "orphan_event",
-        path: r.key,
-        message: `"${r.key}" exists in ${source} but not in ${source === "yaml" ? "snapshot" : "yaml"}`,
-      });
+  if (other.length > 0) {
+    const otherKeys = new Set(other.map((r) => r.key));
+    for (const r of base) {
+      if (r.key && !otherKeys.has(r.key)) {
+        findings.push({
+          severity: "warning",
+          code: "orphan_event",
+          path: r.key,
+          message: `"${r.key}" exists in ${source} but not in ${source === "yaml" ? "snapshot" : "yaml"}`,
+        });
+      }
     }
   }
   return ok({ findings });
