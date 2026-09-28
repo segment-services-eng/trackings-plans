@@ -167,23 +167,28 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Close any open drift issue first — it's now stale.
+          set -e
+          BRANCH="tp/drift/prod"
+
+          # If a human already opened a PR from this branch, leave EVERYTHING alone —
+          # the issue is still relevant context for that PR.
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length' 2>/dev/null || echo 0)
+            if [ "$OPEN_PRS" != "0" ]; then
+              echo "Open PR(s) on $BRANCH — leaving branch AND drift issue in place."
+              exit 0
+            fi
+          fi
+
+          # No open PR — close the drift issue if one exists, then delete the branch if it exists.
           EXISTING=$(gh issue list --label prod-drift --state open --json number --jq '.[0].number' 2>/dev/null || true)
           if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
             gh issue close "$EXISTING" --comment "Drift cleared: prod matches the committed snapshot as of this run."
           fi
-          BRANCH="tp/drift/prod"
-          if ! git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
-            echo "No drift branch on origin — nothing to clean up."
-            exit 0
+
+          if git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
+            git push origin --delete "$BRANCH" || true
           fi
-          # If a human already opened a PR from this branch, leave the branch alone.
-          OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length' 2>/dev/null || echo 0)
-          if [ "$OPEN_PRS" != "0" ]; then
-            echo "Open PR(s) on $BRANCH — leaving branch in place so PR stays open."
-            exit 0
-          fi
-          git push origin --delete "$BRANCH" || true
 
       - name: Upload result artifact
         if: always()
