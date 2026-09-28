@@ -94,7 +94,7 @@ jobs:
               const fs = require("fs");
               const path = require("path");
               const { loadYamlRuleFile, yamlToRule } = require("./dist/lib/yaml-transform.js");
-              const [planDir, outPath] = process.argv.slice(2);
+              const [planDir, outPath] = process.argv.slice(1);
               const files = fs.readdirSync(planDir)
                 .filter((f) => f.endsWith(".yml") || f.endsWith(".yaml"))
                 .map((f) => path.join(planDir, f))
