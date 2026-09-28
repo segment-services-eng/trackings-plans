@@ -54,13 +54,13 @@ export async function previewMarkdown(
   if (source === "yaml") {
     rules = readYamlRules(ctx.repoPath, plan.path).map(yamlToRule);
   } else {
-    if (!args.env) {
+    if (args.env !== "prod") {
       return err(
         "VALIDATION",
-        "env is required when source is 'snapshot'",
+        "source: 'snapshot' requires env: 'prod'. For dev, use source: 'yaml' (the source of truth on the branch).",
       );
     }
-    rules = readPlanSnapshot(ctx.repoPath, args.env, plan.path);
+    rules = readPlanSnapshot(ctx.repoPath, "prod", plan.path);
   }
   const markdown = renderMarkdown({ title: plan.name, rules });
 

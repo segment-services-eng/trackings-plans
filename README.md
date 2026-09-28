@@ -17,7 +17,7 @@
   - [Markdown Auto-Update](#markdown-auto-update)  
 - [Segment API References](#segment-api-references)  
 - [🤖 MCP Server](#-mcp-server)  
-  - [GitHub Actions setup](#github-actions-setup)  
+  - [Workflow dispatch contract](#workflow-dispatch-contract)  
 
 ---
 
@@ -66,19 +66,21 @@ So, it requires **5 GitHub Secrets**:
    - This triggers the `initialize-tracking-plans` workflow
    - It pulls tracking plans from Segment, saves them as JSON, generates YAML, and creates the markdown dictionary.
 
-### **Step 1: Updating Dev Tracking Plan**  
+### **Step 1: Updating Dev Tracking Plan**
 
-🔹 **Trigger**:  
+🔹 **Trigger**:
 
-- Pushing changes to `tracking-rules/javascript/**.yml` or `tracking-rules/server/**.yml` on a **new branch**  
-- This triggers the **Dev workflow** (`Update Development Tracking Plans`)
+- Open a PR touching `tracking-rules/**` on any branch and add the `deploy-dev` label
+- Or dispatch `deploy-dev.yml` from the Actions tab / via the MCP's `deploy_dev` tool
 
-🔹 **What Happens?**  
+🔹 **What Happens?**
 
-1. Converts the modified YAML rule(s) to JSON
-2. Updates the **Dev** tracking plan using a `PATCH` request  
-3. Fetches the updated rules from Segment & saves to `plans/dev/<TP_NAME>/current-rules.json`  
-4. Adds, commits, and pushes the changes  
+1. Converts the YAML rules on the PR's branch to Segment JSON
+2. Updates the **Dev** tracking plan using a `PATCH` request
+3. Posts a sticky comment on the PR with the deploy result
+4. **Does not commit back to the branch** — YAML in `tracking-rules/**` is the source of truth for dev
+
+The pre-M4 flow (auto-deploy on push, commit `plans/dev/**` snapshots) has been retired. Dev deploys are now explicit, and dev state lives on the branch.  
 
 ---
 
@@ -306,29 +308,68 @@ The file is strictly validated: unknown keys, invalid values, or anything that l
 4. `config/tracking-plans-config.json` (the plan list)
 5. Built-in defaults
 
-### GitHub Actions setup
+### Workflow dispatch contract
 
-All Segment API calls run in Actions. The MCP dispatches these workflows and reads their `result.json` artifacts.
+The MCP holds no Segment credentials. Every Segment API call runs inside GitHub Actions. The MCP dispatches workflows on the default branch and polls for their result via the `get_workflow_run` tool. Every dispatchable workflow follows the same contract.
 
-| Workflow | Trigger | Purpose |
-|----------|---------|---------|
-| `deploy-dev.yml` | PR labeled **`deploy-dev`** (plus subsequent pushes to that PR); or `workflow_dispatch` from the `deploy_dev` MCP tool | Build Segment JSON from the PR's YAML and PATCH the shared Dev tracking plan. Posts a sticky comment on the PR. Never commits back to the feature branch. |
-| `deploy-prod.yml` | Push to the default branch touching `tracking-rules/**` | PATCH Prod, save the Prod snapshot, render docs, and commit the snapshot + docs back to `main`. Runs in the `production` GitHub Environment (see below). |
-| `reset-dev.yml` | `workflow_dispatch` (from the `reset_dev` MCP tool or `gh workflow run`) | Reset the Dev tracking plan from `plans/prod/<plan>/current-rules.json` on the default branch. |
-| `prod-drift.yml` | Nightly cron + `workflow_dispatch` (from the `check_prod_drift` MCP tool) | Fetch Prod; if it differs from the committed snapshot, open/update one PR on `tp/drift/prod`. |
+**Inputs**
 
-**One-time setup:**
+All dispatchable workflows accept these `workflow_dispatch` inputs (strings):
 
-1. **Create the `deploy-dev` label** on the repo. Applying it to a PR is what triggers `deploy-dev.yml`; removing it stops further deploys on subsequent pushes.
-2. **Create a `production` GitHub Environment** with **required reviewers**. `deploy-prod.yml` targets this environment, so every prod deploy waits for a human approval. See GitHub's docs: [Using environments for deployment](https://docs.github.com/en/actions/deployment/targeting-different-environments/using-environments-for-deployment) and [Reviewing deployments](https://docs.github.com/en/actions/deployment/targeting-different-environments/reviewing-deployments).
-3. **GitHub Actions secrets:** `SEGMENT_PUBLIC_API_TOKEN`, and one `DEV_SEGMENT_TRACKING_PLAN_ID_<NAME>` + `PROD_SEGMENT_TRACKING_PLAN_ID_<NAME>` per plan in `config/tracking-plans-config.json`. These live only in Actions — never in the MCP client env.
-4. Allow the Actions bot to push to the default branch (for the snapshot + docs commit in `deploy-prod.yml`).
+| Input | Workflows | Meaning |
+|---|---|---|
+| `request_id` | all | Opaque id supplied by the MCP. Workflows embed it in `run-name` (`"<name> [${{ inputs.request_id }}]"`) so the MCP can resolve the run by request id when the dispatch API doesn't return one. |
+| `plan` | `deploy-dev`, `reset-dev` | Plan `path` (e.g. `javascript`) or `all` to target every configured plan. |
+| `ref` | `deploy-dev` | Branch whose YAML to deploy. The MCP always dispatches on the default branch; `deploy-dev` checks out `inputs.ref` internally. |
 
-**Resetting Dev by hand** (the old `RESET_DEV` release trigger is gone):
+**Result shape**
 
-```bash
-gh workflow run reset-dev.yml -f plan=<plan-name-or-all> -f request_id=$(uuidgen)
+Every workflow uploads a `result` artifact containing `result.json`:
+
+```json
+{
+  "ok": true,
+  "workflow": "deploy-dev",
+  "plans": [
+    { "plan": "javascript", "env": "dev", "rules_patched": 3 }
+  ],
+  "errors": []
+}
 ```
+
+Per-plan objects may also include `rules_deleted` (deploy-dev, deploy-prod) or `drift` (prod-drift).
+
+**Concurrency**
+
+Deploy and reset workflows share `concurrency: segment-<env>-<plan>` with `cancel-in-progress: false`. This serializes Segment PATCHes per (env, plan) — two dispatches for the same plan never overlap.
+
+**Finding a run**
+
+`get_workflow_run` accepts either:
+
+- `run_id` (numeric), or
+- `request_id` + `workflow` — the tool looks up the run by matching `run-name`.
+
+`wait_seconds` (0–45) blocks until the run completes; on timeout the tool returns `status: "in_progress"` without erroring.
+
+**Prod safety**
+
+`deploy-prod.yml` uses the `production` GitHub Environment with required reviewers. The MCP does not have a `deploy_prod` tool; production is only patched by push-to-default-branch, gated by the Environment.
+
+**Prod drift detection**
+
+`prod-drift.yml` runs nightly (and on dispatch). When Segment prod diverges from the committed snapshot, the workflow:
+
+1. Pushes the fresh snapshot to `tp/drift/prod` (force-with-lease).
+2. Opens (or updates) an issue labeled `prod-drift` titled "Prod tracking plan drift" with a compare link.
+3. A human reviews the compare view and opens a PR from `tp/drift/prod` → `main` (or reconciles via `tracking-rules/` YAML edits).
+4. When a subsequent run detects no drift, the open drift issue is closed and the branch deleted (unless a human PR is still open on it).
+
+The workflow opens an issue rather than a PR because the org disallows GitHub Actions from creating pull requests.
+
+**Secrets, restated**
+
+`SEGMENT_PUBLIC_API_TOKEN` and `*_SEGMENT_TRACKING_PLAN_ID_*` live only as GitHub Actions secrets, never in the MCP client env.
 
 ### Security notes
 

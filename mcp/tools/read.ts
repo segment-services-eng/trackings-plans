@@ -22,7 +22,7 @@ function readRulesForEnv(
     const yamlRules: YamlRule[] = readYamlRules(repoPath, planPath);
     return { rules: yamlRules.map(yamlToRule), source: "yaml" };
   }
-  return { rules: readPlanSnapshot(repoPath, env, planPath), source: "snapshot" };
+  return { rules: readPlanSnapshot(repoPath, "prod", planPath), source: "snapshot" };
 }
 
 export const listPlansInput = z.object({}).strict();

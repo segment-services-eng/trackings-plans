@@ -51,7 +51,7 @@ function rulesForEnv(
     return { rules: readYamlRules(repoPath, planPath), source: "yaml" };
   }
   return {
-    rules: readPlanSnapshot(repoPath, env, planPath).map(ruleToYaml),
+    rules: readPlanSnapshot(repoPath, "prod", planPath).map(ruleToYaml),
     source: "snapshot",
   };
 }
@@ -107,27 +107,34 @@ export async function lintRules(
 ): Promise<ToolResult<{ findings: Finding[] }>> {
   const resolved = resolvePlanOr<{ findings: Finding[] }>(ctx, args.plan);
   if ("ok" in resolved) return resolved;
-  const source = args.source ?? "snapshot";
+  const source = args.source ?? (args.env === "prod" ? "snapshot" : "yaml");
+  if (source === "snapshot" && args.env === "dev") {
+    return err(
+      "VALIDATION",
+      "source: 'snapshot' requires env: 'prod'. For dev, use source: 'yaml' (the source of truth on the branch).",
+    );
+  }
   const yamlRules = readYamlRules(ctx.repoPath, resolved.plan.path);
-  const snapshotRules = readPlanSnapshot(
-    ctx.repoPath,
-    args.env,
-    resolved.plan.path,
-  ).map(ruleToYaml);
+  const snapshotRules =
+    args.env === "prod"
+      ? readPlanSnapshot(ctx.repoPath, "prod", resolved.plan.path).map(ruleToYaml)
+      : [];
 
   const base = source === "yaml" ? yamlRules : snapshotRules;
   const other = source === "yaml" ? snapshotRules : yamlRules;
   const findings: Finding[] = libValidatePlan(base);
 
-  const otherKeys = new Set(other.map((r) => r.key));
-  for (const r of base) {
-    if (r.key && !otherKeys.has(r.key)) {
-      findings.push({
-        severity: "warning",
-        code: "orphan_event",
-        path: r.key,
-        message: `"${r.key}" exists in ${source} but not in ${source === "yaml" ? "snapshot" : "yaml"}`,
-      });
+  if (other.length > 0) {
+    const otherKeys = new Set(other.map((r) => r.key));
+    for (const r of base) {
+      if (r.key && !otherKeys.has(r.key)) {
+        findings.push({
+          severity: "warning",
+          code: "orphan_event",
+          path: r.key,
+          message: `"${r.key}" exists in ${source} but not in ${source === "yaml" ? "snapshot" : "yaml"}`,
+        });
+      }
     }
   }
   return ok({ findings });

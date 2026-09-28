@@ -47,6 +47,31 @@ function makeRepoWithYaml(): string {
     join(yamlDir, "Only_In_Yaml.yml"),
     "rules:\n  - key: Only In Yaml\n    type: TRACK\n    version: 1\n    description: not yet promoted\n    properties: {}\n",
   );
+  // Add a prod snapshot that includes Product Viewed but not Only In Yaml,
+  // so the orphan_event logic has a real non-empty target to compare against.
+  const prodDir = join(repo, "plans", "prod", "javascript");
+  mkdirSync(prodDir, { recursive: true });
+  writeFileSync(
+    join(prodDir, "current-rules.json"),
+    JSON.stringify({
+      rules: [
+        {
+          key: "Product Viewed",
+          type: "TRACK",
+          version: 1,
+          jsonSchema: {
+            description: "Fired on view",
+            properties: {
+              properties: {
+                type: "object",
+                properties: { product_id: { type: "string", description: "id" } },
+              },
+            },
+          },
+        },
+      ],
+    }),
+  );
   return repo;
 }
 
@@ -117,13 +142,52 @@ describe("validate MCP tools", () => {
 
   it("lint_rules emits orphan_event findings for YAML vs snapshot", async () => {
     const ctx = resolveContext({ REPO_PATH: makeRepoWithYaml() });
+    // env:'prod' + source:'yaml' → base=yamlRules, other=snapshotRules (non-empty).
+    // "Only In Yaml" is in yaml but not in the prod snapshot → flagged as orphan.
+    // "Product Viewed" is in both → not flagged.
     const res = await lintRules(ctx, {
       plan: "javascript",
-      env: "dev",
+      env: "prod",
       source: "yaml",
     });
     if (!res.ok) throw new Error();
     const orphans = res.data.findings.filter((f) => f.code === "orphan_event");
     expect(orphans.some((f) => f.path === "Only In Yaml")).toBe(true);
+    expect(orphans.some((f) => f.path === "Product Viewed")).toBe(false);
+  });
+
+  it("lintRules with env:'dev' and source:'snapshot' returns VALIDATION error", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    const res = await lintRules(ctx, {
+      plan: "javascript",
+      env: "dev",
+      source: "snapshot",
+    });
+    expect(res.ok).toBe(false);
+    if (res.ok) throw new Error();
+    expect(res.error.code).toBe("VALIDATION");
+    expect(res.error.message).toMatch(/snapshot.*prod|dev.*yaml/i);
+  });
+
+  it("lintRules with env:'dev' and no source defaults to yaml routing", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    const res = await lintRules(ctx, { plan: "javascript", env: "dev" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error();
+    // env:'dev' → source:'yaml'; no prod snapshot → other is empty → no orphan_event flooding
+    const orphans = res.data.findings.filter((f) => f.code === "orphan_event");
+    expect(orphans).toEqual([]);
+  });
+
+  it("lintRules skips orphan comparison when target set is empty", async () => {
+    const ctx = resolveContext({ REPO_PATH: makeRepo() });
+    // env:'prod' + source:'yaml' → base=yamlRules, other=snapshotRules.
+    // makeRepo() has no prod snapshot so other=[]. Fix 2 skips the loop → zero orphans.
+    const res = await lintRules(ctx, { plan: "javascript", env: "prod", source: "yaml" });
+    expect(res.ok).toBe(true);
+    if (!res.ok) throw new Error();
+    const orphans = res.data.findings.filter((f) => f.code === "orphan_event");
+    // No prod snapshot in this fixture → other is empty → orphan loop skipped → 0 orphans.
+    expect(orphans.length).toBe(0);
   });
 });
