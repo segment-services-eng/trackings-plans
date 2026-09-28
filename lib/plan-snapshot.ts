@@ -4,7 +4,7 @@ import type { Rule } from "./segment-api.js";
 
 function planDir(
   repoPath: string,
-  env: "dev" | "prod",
+  env: "prod",
   planPath: string,
 ): string {
   return join(repoPath, "plans", env, planPath);
@@ -12,7 +12,7 @@ function planDir(
 
 export function hasPlanSnapshot(
   repoPath: string,
-  env: "dev" | "prod",
+  env: "prod",
   planPath: string,
 ): boolean {
   const dir = planDir(repoPath, env, planPath);
@@ -24,7 +24,7 @@ export function hasPlanSnapshot(
 
 export function readPlanSnapshot(
   repoPath: string,
-  env: "dev" | "prod",
+  env: "prod",
   planPath: string,
 ): Rule[] {
   const dir = planDir(repoPath, env, planPath);
