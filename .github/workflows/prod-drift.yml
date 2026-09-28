@@ -14,7 +14,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  issues: write
 
 jobs:
   drift:
@@ -110,7 +110,7 @@ jobs:
             exit 1
           fi
 
-      - name: Open or update drift PR
+      - name: Open or update drift issue
         if: success() && steps.drift.outputs.any_drift == 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -135,31 +135,48 @@ jobs:
           fi
           git commit -m "chore(drift): prod tracking plan drift snapshot"
           git push --force-with-lease origin "$BRANCH"
-          BODY_FILE="$RUNNER_TEMP/pr-body.md"
+
+          BODY_FILE="$RUNNER_TEMP/issue-body.md"
           {
             echo "Automated drift detection: Segment prod tracking plans differ from the committed snapshot."
             echo ""
-            echo "Run: $SERVER_URL/$REPO/actions/runs/$RUN_ID"
+            echo "**Branch:** \`$BRANCH\` (pushed with the fresh snapshot)"
+            echo "**Compare:** $SERVER_URL/$REPO/compare/main...$BRANCH"
+            echo "**Run:** $SERVER_URL/$REPO/actions/runs/$RUN_ID"
             echo ""
-            echo "Review the diff and either merge to accept the drift into main, or reconcile via \`tracking-rules/\` YAML."
+            echo "### Next steps"
+            echo "1. Review the compare view above."
+            echo "2. Open a PR manually from \`$BRANCH\` → \`main\` to accept the drift into the snapshot, OR"
+            echo "3. Reconcile via \`tracking-rules/\` YAML edits on a new branch."
+            echo ""
+            echo "> This issue is opened by \`prod-drift.yml\`. GitHub Actions cannot open PRs in this org, so a human opens the PR."
           } > "$BODY_FILE"
-          EXISTING=$(gh pr list --head "$BRANCH" --base main --state open --json number --jq '.[0].number' 2>/dev/null || true)
+
+          EXISTING=$(gh issue list --label prod-drift --state open --json number --jq '.[0].number' 2>/dev/null || true)
           if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
-            gh pr edit "$EXISTING" --body-file "$BODY_FILE" --title "Prod tracking plan drift"
+            gh issue edit "$EXISTING" --body-file "$BODY_FILE" --title "Prod tracking plan drift"
           else
-            gh pr create --head "$BRANCH" --base main --title "Prod tracking plan drift" --body-file "$BODY_FILE"
+            # Create the label if missing (idempotent — swallow the already-exists error).
+            gh label create prod-drift --color FBCA04 --description "Automated: Segment prod drift detected by prod-drift.yml" 2>/dev/null || true
+            gh issue create --label prod-drift --title "Prod tracking plan drift" --body-file "$BODY_FILE"
           fi
 
-      - name: Close stale drift branch when no drift
+      - name: Close stale drift issue and branch when no drift
         if: success() && steps.drift.outputs.any_drift != 'true'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Close any open drift issue first — it's now stale.
+          EXISTING=$(gh issue list --label prod-drift --state open --json number --jq '.[0].number' 2>/dev/null || true)
+          if [ -n "$EXISTING" ] && [ "$EXISTING" != "null" ]; then
+            gh issue close "$EXISTING" --comment "Drift cleared: prod matches the committed snapshot as of this run."
+          fi
           BRANCH="tp/drift/prod"
           if ! git ls-remote --exit-code --heads origin "$BRANCH" > /dev/null 2>&1; then
             echo "No drift branch on origin — nothing to clean up."
             exit 0
           fi
+          # If a human already opened a PR from this branch, leave the branch alone.
           OPEN_PRS=$(gh pr list --head "$BRANCH" --state open --json number --jq 'length' 2>/dev/null || echo 0)
           if [ "$OPEN_PRS" != "0" ]; then
             echo "Open PR(s) on $BRANCH — leaving branch in place so PR stays open."
