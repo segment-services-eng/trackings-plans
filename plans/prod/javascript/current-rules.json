@@ -7,10 +7,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Advisory SE Roundtab",
         "properties": {
           "context": {
             "type": "object"
@@ -38,158 +34,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-09-18T18:56:17.000Z",
-      "updatedAt": "2025-03-19T18:33:52.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
-    },
-    {
-      "key": "Advisory SE Roundtable",
-      "type": "TRACK",
-      "version": 2,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
+        ],
         "labels": {
           "feature": "journeys"
         },
-        "description": "Advisory SE Roundtable",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "prop3": {
-                "description": "this is a new description for prop3",
-                "required": false,
-                "type": [
-                  "string"
-                ]
-              }
-            },
-            "required": [
-              "prop2"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ]
-      },
-      "createdAt": "2025-09-09T15:33:33.000Z",
-      "updatedAt": "2025-09-09T15:33:33.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
-    },
-    {
-      "key": "Advisory SE Roundtable For Corey",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Levi's Meeting",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "prop3": {
-                "description": "this is a new description for prop3",
-                "required": false,
-                "type": [
-                  "string"
-                ]
-              }
-            },
-            "required": [
-              "prop2"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ]
-      },
-      "createdAt": "2026-01-12T18:32:42.000Z",
-      "updatedAt": "2026-01-12T18:32:42.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
-    },
-    {
-      "key": "Advisory SE Roundtable For Corey",
-      "type": "TRACK",
-      "version": 2,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Levi's Meeting",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "prop3": {
-                "description": "this is a new description for prop3",
-                "required": false,
-                "type": [
-                  "string"
-                ]
-              }
-            },
-            "required": [
-              "prop2"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ]
-      },
-      "createdAt": "2025-09-11T20:25:41.000Z",
-      "updatedAt": "2026-01-12T18:04:41.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        "description": "Advisory SE Roundtable"
+      }
     },
     {
       "key": "Aubrey's Event 1",
@@ -198,10 +48,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Aubrey's Event 1",
         "properties": {
           "context": {
             "type": "object"
@@ -227,23 +73,20 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-09-18T18:36:43.000Z",
-      "updatedAt": "2025-03-26T18:46:25.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Aubrey's Event 1"
+      }
     },
     {
-      "key": "First Event",
+      "key": "M4 Closeout Verify",
       "type": "TRACK",
       "version": 1,
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "First Event",
         "properties": {
           "context": {
             "type": "object"
@@ -254,126 +97,26 @@
           "properties": {
             "type": "object",
             "properties": {
-              "array_prop22": {
-                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
-                "items": {
-                  "properties": {
-                    "layer1_prop34": {
-                      "description": "this is an optional property on any items in the array_prop1  change here for version 2",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "obj_prop1": {
-                "description": "this is required object (i.e. can have nested sub-properties) here here",
-                "properties": {
-                  "sub_prop1": {
-                    "description": "here blach",
-                    "type": "array"
-                  }
-                },
-                "type": "object"
-              },
-              "prop3": {
-                "description": "this is a single test testing",
-                "type": [
-                  "string"
-                ]
+              "verify_run_id": {
+                "type": "string",
+                "description": "Identifier for this verification run."
               }
-            },
-            "required": [
-              "obj_prop1",
-              "prop3"
-            ]
+            }
           }
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-08T18:10:05.000Z",
-      "updatedAt": "2026-01-12T18:32:42.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "description": "Test event to verify the post-M4-closeout deploy-dev flow: label trigger, workflow dispatch, and PR sticky comment posting."
+      }
     },
     {
-      "key": "First Event",
-      "type": "TRACK",
-      "version": 2,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "First Event",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "array_prop22": {
-                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
-                "items": {
-                  "properties": {
-                    "layer1_prop34": {
-                      "description": "this is an optional property on any items in the array_prop1  change here for version 2",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "obj_prop1": {
-                "description": "this is required object (i.e. can have nested sub-properties) here here",
-                "properties": {
-                  "sub_prop1": {
-                    "description": "here blach",
-                    "type": "array"
-                  }
-                },
-                "type": "object"
-              },
-              "prop3": {
-                "description": "this is a single test testing",
-                "type": [
-                  "string"
-                ]
-              }
-            },
-            "required": [
-              "obj_prop1",
-              "prop3"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ]
-      },
-      "createdAt": "2025-09-09T15:33:33.000Z",
-      "updatedAt": "2025-09-09T15:33:33.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
-    },
-    {
-      "key": "Levi's Event",
+      "key": "MCP Test Event",
       "type": "TRACK",
       "version": 1,
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Levi's Meeting Updated",
         "properties": {
           "context": {
             "type": "object"
@@ -384,33 +127,18 @@
           "properties": {
             "type": "object",
             "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "prop3": {
-                "description": "this is a new description for prop3",
-                "required": false,
-                "type": [
-                  "string"
-                ]
+              "test_run_id": {
+                "type": "string",
+                "description": "Identifier for the test invocation."
               }
-            },
-            "required": [
-              "prop2"
-            ]
+            }
           }
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2026-01-12T18:32:42.000Z",
-      "updatedAt": "2026-01-12T19:15:49.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "description": "Test event added via MCP to verify deploy-dev label auto-attach and end-to-end flow."
+      }
     },
     {
       "key": "Obj Prop",
@@ -419,8 +147,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {},
-        "description": "Obj Prop",
         "properties": {
           "context": {
             "type": "object"
@@ -433,6 +159,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property sd safd",
@@ -442,18 +169,17 @@
                     "description": "this is a required sub-property in an object",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -463,11 +189,10 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-08T18:10:05.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {},
+        "description": "Obj Prop"
+      }
     },
     {
       "key": "Obj Prop 10",
@@ -476,10 +201,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 10",
         "properties": {
           "context": {
             "type": "object"
@@ -492,6 +213,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -501,18 +223,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -522,11 +243,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-21T17:55:14.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 10"
+      }
     },
     {
       "key": "Obj Prop 16",
@@ -535,10 +257,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 6",
         "properties": {
           "context": {
             "type": "object"
@@ -551,6 +269,10 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": [
+                  "object",
+                  "null"
+                ],
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -560,21 +282,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": [
-                  "object",
-                  "null"
-                ]
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -584,11 +302,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2025-05-20T23:29:03.000Z",
-      "updatedAt": "2025-05-20T23:29:03.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 16"
+      }
     },
     {
       "key": "Obj Prop 2",
@@ -597,10 +316,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 2",
         "properties": {
           "context": {
             "type": "object"
@@ -613,6 +328,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -625,18 +341,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -646,11 +361,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-15T00:25:25.000Z",
-      "updatedAt": "2025-03-26T18:46:25.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 2"
+      }
     },
     {
       "key": "Obj Prop 20",
@@ -659,10 +375,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 20",
         "properties": {
           "context": {
             "type": "object"
@@ -675,6 +387,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -684,18 +397,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -705,11 +417,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-21T23:51:09.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 20"
+      }
     },
     {
       "key": "Obj Prop 22",
@@ -718,10 +431,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 22",
         "properties": {
           "context": {
             "type": "object"
@@ -734,6 +443,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -743,18 +453,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -764,11 +473,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-22T19:53:55.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 22"
+      }
     },
     {
       "key": "Obj Prop 4",
@@ -777,10 +487,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 4 description",
         "properties": {
           "context": {
             "type": "object"
@@ -793,6 +499,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -802,18 +509,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -823,11 +529,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-21T16:36:47.000Z",
-      "updatedAt": "2025-02-14T20:53:55.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 4"
+      }
     },
     {
       "key": "Obj Prop 6",
@@ -836,10 +543,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 6",
         "properties": {
           "context": {
             "type": "object"
@@ -852,6 +555,7 @@
             "properties": {
               "object": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "int1": {
                     "description": "this should be a new property",
@@ -861,18 +565,17 @@
                     "description": "this is a required property in an object new descriotion",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "object2": {
                 "description": "this is a single property",
+                "type": "object",
                 "properties": {
                   "string": {
                     "description": "this is a required sub-property in an object dsfa",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               }
             },
             "required": [
@@ -882,11 +585,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-21T16:49:50.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 6"
+      }
     },
     {
       "key": "Second Event",
@@ -895,10 +599,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Second Event",
         "properties": {
           "context": {
             "type": "object"
@@ -924,13 +624,13 @@
               },
               "obj_prop1": {
                 "description": "tfhis is required obj ect (i.e. c an have nested sub-properties)",
+                "type": "object",
                 "properties": {
                   "sub_prop1": {
                     "description": "this is a req uired sub-property in an object",
                     "type": "string"
                   }
-                },
-                "type": "object"
+                }
               },
               "prop3": {
                 "description": "this is a single property",
@@ -945,11 +645,12 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-14T22:31:13.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Second Event"
+      }
     },
     {
       "key": "Segment Consent Preference Updated",
@@ -958,8 +659,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {},
-        "description": "Segment Consent Preference Updated",
         "properties": {
           "context": {
             "type": "object"
@@ -968,16 +667,16 @@
             "type": "object"
           },
           "properties": {
-            "type": "object"
+            "type": "object",
+            "properties": {}
           }
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-08T18:06:45.000Z",
-      "updatedAt": "2025-02-11T23:26:57.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {},
+        "description": "Segment Consent Preference Updated"
+      }
     },
     {
       "key": "Third Event",
@@ -986,10 +685,6 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Third Event",
         "properties": {
           "context": {
             "type": "object"
@@ -1012,11 +707,164 @@
         },
         "required": [
           "properties"
-        ]
-      },
-      "createdAt": "2024-08-15T18:56:35.000Z",
-      "updatedAt": "2025-02-12T20:41:20.000Z",
-      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Third Event"
+      }
+    },
+    {
+      "key": "Advisory SE Roundtable For Corey",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting"
+      }
+    },
+    {
+      "key": "First Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "array_prop22": {
+                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
+                "items": {
+                  "properties": {
+                    "layer1_prop34": {
+                      "description": "this is an optional property on any items in the array_prop1  change here for version 2",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "obj_prop1": {
+                "description": "this is required object (i.e. can have nested sub-properties) here here",
+                "type": "object",
+                "properties": {
+                  "sub_prop1": {
+                    "description": "here blach",
+                    "type": "array"
+                  }
+                }
+              },
+              "prop3": {
+                "description": "this is a single test testing",
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "obj_prop1",
+              "prop3"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "First Event"
+      }
+    },
+    {
+      "key": "Levi's Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ],
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting Updated"
+      }
     }
   ]
 }

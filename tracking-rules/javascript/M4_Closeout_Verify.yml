@@ -1,0 +1,12 @@
+rules:
+  - key: M4 Closeout Verify
+    type: TRACK
+    version: 1
+    description: >-
+      Test event to verify the post-M4-closeout deploy-dev flow: label
+      trigger, workflow dispatch, and PR sticky comment posting.
+    properties:
+      verify_run_id:
+        type: string
+        description: Identifier for this verification run.
+        required: false
