@@ -7,6 +7,10 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Advisory SE Roundtab",
         "properties": {
           "context": {
             "type": "object"
@@ -34,12 +38,158 @@
         },
         "required": [
           "properties"
-        ],
+        ]
+      },
+      "createdAt": "2024-09-18T18:56:17.000Z",
+      "updatedAt": "2025-03-19T18:33:52.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Advisory SE Roundtable",
+      "type": "TRACK",
+      "version": 2,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "labels": {
           "feature": "journeys"
         },
-        "description": "Advisory SE Roundtable"
-      }
+        "description": "Advisory SE Roundtable",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "required": false,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2025-09-09T15:33:33.000Z",
+      "updatedAt": "2025-09-09T15:33:33.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Advisory SE Roundtable For Corey",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "required": false,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-01-12T18:32:42.000Z",
+      "updatedAt": "2026-01-12T18:32:42.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Advisory SE Roundtable For Corey",
+      "type": "TRACK",
+      "version": 2,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "prop3": {
+                "description": "this is a new description for prop3",
+                "required": false,
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2025-09-11T20:25:41.000Z",
+      "updatedAt": "2026-01-12T18:04:41.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
       "key": "Aubrey's Event 1",
@@ -48,6 +198,10 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Aubrey's Event 1",
         "properties": {
           "context": {
             "type": "object"
@@ -73,691 +227,11 @@
         },
         "required": [
           "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Aubrey's Event 1"
-      }
-    },
-    {
-      "key": "M4 Closeout Verify",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "verify_run_id": {
-                "type": "string",
-                "description": "Identifier for this verification run."
-              }
-            }
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "description": "Test event to verify the post-M4-closeout deploy-dev flow: label trigger, workflow dispatch, and PR sticky comment posting."
-      }
-    },
-    {
-      "key": "MCP Test Event",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "test_run_id": {
-                "type": "string",
-                "description": "Identifier for the test invocation."
-              }
-            }
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "description": "Test event added via MCP to verify deploy-dev label auto-attach and end-to-end flow."
-      }
-    },
-    {
-      "key": "Obj Prop",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property sd safd",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required sub-property in an object",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {},
-        "description": "Obj Prop"
-      }
-    },
-    {
-      "key": "Obj Prop 10",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 10"
-      }
-    },
-    {
-      "key": "Obj Prop 16",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": [
-                  "object",
-                  "null"
-                ],
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 16"
-      }
-    },
-    {
-      "key": "Obj Prop 2",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": [
-                      "number",
-                      "null"
-                    ]
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 2"
-      }
-    },
-    {
-      "key": "Obj Prop 20",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 20"
-      }
-    },
-    {
-      "key": "Obj Prop 22",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 22"
-      }
-    },
-    {
-      "key": "Obj Prop 4",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 4"
-      }
-    },
-    {
-      "key": "Obj Prop 6",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "object": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "int1": {
-                    "description": "this should be a new property",
-                    "type": "number"
-                  },
-                  "string": {
-                    "description": "this is a required property in an object new descriotion",
-                    "type": "string"
-                  }
-                }
-              },
-              "object2": {
-                "description": "this is a single property",
-                "type": "object",
-                "properties": {
-                  "string": {
-                    "description": "this is a required sub-property in an object dsfa",
-                    "type": "string"
-                  }
-                }
-              }
-            },
-            "required": [
-              "object"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Obj Prop 6"
-      }
-    },
-    {
-      "key": "Second Event",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "array_prop1": {
-                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
-                "items": {
-                  "properties": {
-                    "layer1_prop217": {
-                      "description": "this is an o ptional property on any items in the array_prop1 array safd",
-                      "type": "string"
-                    }
-                  },
-                  "type": "object"
-                },
-                "type": "array"
-              },
-              "obj_prop1": {
-                "description": "tfhis is required obj ect (i.e. c an have nested sub-properties)",
-                "type": "object",
-                "properties": {
-                  "sub_prop1": {
-                    "description": "this is a req uired sub-property in an object",
-                    "type": "string"
-                  }
-                }
-              },
-              "prop3": {
-                "description": "this is a single property",
-                "type": "string"
-              }
-            },
-            "required": [
-              "obj_prop1",
-              "prop3"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Second Event"
-      }
-    },
-    {
-      "key": "Segment Consent Preference Updated",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {}
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {},
-        "description": "Segment Consent Preference Updated"
-      }
-    },
-    {
-      "key": "Third Event",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": "string"
-              }
-            },
-            "required": [
-              "prop2"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Third Event"
-      }
-    },
-    {
-      "key": "Advisory SE Roundtable For Corey",
-      "type": "TRACK",
-      "version": 1,
-      "jsonSchema": {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "object"
-          },
-          "traits": {
-            "type": "object"
-          },
-          "properties": {
-            "type": "object",
-            "properties": {
-              "prop2": {
-                "description": "this is a single property",
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "prop3": {
-                "description": "this is a new description for prop3",
-                "type": [
-                  "string"
-                ]
-              }
-            },
-            "required": [
-              "prop2"
-            ]
-          }
-        },
-        "required": [
-          "properties"
-        ],
-        "labels": {
-          "feature": "journeys"
-        },
-        "description": "Levi's Meeting"
-      }
+        ]
+      },
+      "createdAt": "2024-09-18T18:36:43.000Z",
+      "updatedAt": "2025-03-26T18:46:25.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
       "key": "First Event",
@@ -766,6 +240,10 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "First Event",
         "properties": {
           "context": {
             "type": "object"
@@ -791,13 +269,13 @@
               },
               "obj_prop1": {
                 "description": "this is required object (i.e. can have nested sub-properties) here here",
-                "type": "object",
                 "properties": {
                   "sub_prop1": {
                     "description": "here blach",
                     "type": "array"
                   }
-                }
+                },
+                "type": "object"
               },
               "prop3": {
                 "description": "this is a single test testing",
@@ -814,12 +292,76 @@
         },
         "required": [
           "properties"
-        ],
+        ]
+      },
+      "createdAt": "2024-08-08T18:10:05.000Z",
+      "updatedAt": "2026-01-12T18:32:42.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "First Event",
+      "type": "TRACK",
+      "version": 2,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "labels": {
           "feature": "journeys"
         },
-        "description": "First Event"
-      }
+        "description": "First Event",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "array_prop22": {
+                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
+                "items": {
+                  "properties": {
+                    "layer1_prop34": {
+                      "description": "this is an optional property on any items in the array_prop1  change here for version 2",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "obj_prop1": {
+                "description": "this is required object (i.e. can have nested sub-properties) here here",
+                "properties": {
+                  "sub_prop1": {
+                    "description": "here blach",
+                    "type": "array"
+                  }
+                },
+                "type": "object"
+              },
+              "prop3": {
+                "description": "this is a single test testing",
+                "type": [
+                  "string"
+                ]
+              }
+            },
+            "required": [
+              "obj_prop1",
+              "prop3"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2025-09-09T15:33:33.000Z",
+      "updatedAt": "2025-09-09T15:33:33.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
     },
     {
       "key": "Levi's Event",
@@ -828,6 +370,10 @@
       "jsonSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Levi's Meeting Updated",
         "properties": {
           "context": {
             "type": "object"
@@ -847,6 +393,7 @@
               },
               "prop3": {
                 "description": "this is a new description for prop3",
+                "required": false,
                 "type": [
                   "string"
                 ]
@@ -859,12 +406,683 @@
         },
         "required": [
           "properties"
-        ],
+        ]
+      },
+      "createdAt": "2026-01-12T18:32:42.000Z",
+      "updatedAt": "2026-01-12T19:15:49.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "M4 Closeout Verify",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "description": "Test event to verify the post-M4-closeout deploy-dev flow: label trigger, workflow dispatch, and PR sticky comment posting.",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "verify_run_id": {
+                "description": "Identifier for this verification run.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-09-28T18:54:34.000Z",
+      "updatedAt": "2026-09-28T18:54:34.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "MCP Test Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "description": "Test event added via MCP to verify deploy-dev label auto-attach and end-to-end flow.",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "test_run_id": {
+                "description": "Identifier for the test invocation.",
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2026-09-25T19:09:30.000Z",
+      "updatedAt": "2026-09-25T19:09:30.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {},
+        "description": "Obj Prop",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property sd safd",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required sub-property in an object",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-08T18:10:05.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 10",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
         "labels": {
           "feature": "journeys"
         },
-        "description": "Levi's Meeting Updated"
-      }
+        "description": "Obj Prop 10",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-21T17:55:14.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 16",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 6",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2025-05-20T23:29:03.000Z",
+      "updatedAt": "2025-05-20T23:29:03.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 2",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 2",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-15T00:25:25.000Z",
+      "updatedAt": "2025-03-26T18:46:25.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 20",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 20",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-21T23:51:09.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 22",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 22",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-22T19:53:55.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 4",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 4 description",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-21T16:36:47.000Z",
+      "updatedAt": "2025-02-14T20:53:55.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Obj Prop 6",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Obj Prop 6",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "object": {
+                "description": "this is a single property",
+                "properties": {
+                  "int1": {
+                    "description": "this should be a new property",
+                    "type": "number"
+                  },
+                  "string": {
+                    "description": "this is a required property in an object new descriotion",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "object2": {
+                "description": "this is a single property",
+                "properties": {
+                  "string": {
+                    "description": "this is a required sub-property in an object dsfa",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              }
+            },
+            "required": [
+              "object"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-21T16:49:50.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Second Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Second Event",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "array_prop1": {
+                "description": "this is an array property (it will specify  \"items\", keys that need to exist for each item in the array)",
+                "items": {
+                  "properties": {
+                    "layer1_prop217": {
+                      "description": "this is an o ptional property on any items in the array_prop1 array safd",
+                      "type": "string"
+                    }
+                  },
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              "obj_prop1": {
+                "description": "tfhis is required obj ect (i.e. c an have nested sub-properties)",
+                "properties": {
+                  "sub_prop1": {
+                    "description": "this is a req uired sub-property in an object",
+                    "type": "string"
+                  }
+                },
+                "type": "object"
+              },
+              "prop3": {
+                "description": "this is a single property",
+                "type": "string"
+              }
+            },
+            "required": [
+              "obj_prop1",
+              "prop3"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-14T22:31:13.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Segment Consent Preference Updated",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {},
+        "description": "Segment Consent Preference Updated",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-08T18:06:45.000Z",
+      "updatedAt": "2025-02-11T23:26:57.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
+    },
+    {
+      "key": "Third Event",
+      "type": "TRACK",
+      "version": 1,
+      "jsonSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "labels": {
+          "feature": "journeys"
+        },
+        "description": "Third Event",
+        "properties": {
+          "context": {
+            "type": "object"
+          },
+          "traits": {
+            "type": "object"
+          },
+          "properties": {
+            "type": "object",
+            "properties": {
+              "prop2": {
+                "description": "this is a single property",
+                "type": "string"
+              }
+            },
+            "required": [
+              "prop2"
+            ]
+          }
+        },
+        "required": [
+          "properties"
+        ]
+      },
+      "createdAt": "2024-08-15T18:56:35.000Z",
+      "updatedAt": "2025-02-12T20:41:20.000Z",
+      "deprecatedAt": "0001-01-01T00:00:00.000Z"
     }
   ]
 }
